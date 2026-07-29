@@ -30,6 +30,8 @@ SECRET_KEY = "DHIWEHF83YFWHFKJEBF3E0RU4390RUEDFNWEBFWEFlkheugerhfiuf98rfbfb8U0ih
 ALGORITHM = 'HS256'
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
+
+
 def create_token(email:str,user_id:int):
     expire = datetime.now(timezone.utc) + timedelta(ACCESS_TOKEN_EXPIRE_MINUTES)
 
@@ -49,6 +51,15 @@ auth_dependency = Depends(oauth2_scheme)
 #################################### END POINTS ####################################
 db_dependency = Annotated[Session,Depends(get_db)]
 
+# create a sepertae function. you cannot use get_current_user at the last of this code because it is a endpoint. you must use a function in your dependency
+async def current_user(db : db_dependency,user: str = auth_dependency): 
+    payload = jwt.decode(user,SECRET_KEY,algorithms=[ALGORITHM])
+    email = payload.get('sub')  # decode the payload first very important
+    user_id = payload.get('id')
+    return user_id
+
+
+
 @router.post("/auth/registering new user")
 async def register_new_user(db : db_dependency,user: EnterUserData):
     register_new_user_model = Users(
@@ -66,8 +77,6 @@ async def register_new_user(db : db_dependency,user: EnterUserData):
 async def login(db: db_dependency,form_data : OAuth2PasswordRequestForm = Depends()): 
     email_id = form_data.username
     password1 = form_data.password
-    print(email_id)
-    print(password1)
     user_detail = db.query(Users).filter(Users.email == email_id).first()
     if user_detail is None:
         return {"user":"username not available"}
@@ -81,7 +90,9 @@ async def login(db: db_dependency,form_data : OAuth2PasswordRequestForm = Depend
 @router.get("/auth/me/")
 async def get_current_user(db : db_dependency,user: str = auth_dependency): 
     payload = jwt.decode(user,SECRET_KEY,algorithms=[ALGORITHM])
-    user_detail = db.query(Users).filter(Users.id == payload["id"]).first()
-    return user_detail.created_at,user_detail.email
+    email = payload.get('sub')
+    user_id = payload.get('id')
+    # user_detail = db.query(Users).filter(Users.id == user_id).first()
+    return user_id
 
     
