@@ -66,5 +66,13 @@ async def update_company_detail(id: int,db: db_dependency, user :current_user_de
     db.commit()
     db.refresh(company_to_update)
 
-@router.delete("/company_deleted/{id}",status_code=status.HTTP_200_OK)
-async def delete_a_company(id = Path(ge=0,le=100)) : pass
+@router.delete("/company_deleted/",status_code=status.HTTP_200_OK)
+async def delete_a_company(db: db_dependency,usr: current_user_dependency,id:int) :
+    if usr is None:
+        raise HTTPException(status_code=404,detail="user are not authenticated")  
+    company_to_delete = db.query(Companies).filter(Companies.company_id == id,Companies.user_id == usr).first()
+    if company_to_delete is None:
+        raise HTTPException(status_code=404,detail="company not found")
+    db.delete(company_to_delete)
+    db.commit()
+    
