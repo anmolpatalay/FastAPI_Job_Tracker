@@ -24,7 +24,7 @@ class Companies(BASE):
     company_id = Column(Integer,primary_key=True,index=True)
     user_id = Column(Integer,ForeignKey('users.id'))
     company_name = Column(String(30))
-    note = Column(String(100))
+    note = Column(String(30))
 
 class Applications(BASE):
     __tablename__ = "applications"
