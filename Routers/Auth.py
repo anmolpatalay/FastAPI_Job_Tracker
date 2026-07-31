@@ -8,6 +8,8 @@ from datetime import datetime,timedelta,timezone
 from utils import hash_password,bcrypt_context
 from jose import jwt
 from fastapi.security import OAuth2PasswordBearer,OAuth2PasswordRequestForm
+from dotenv import load_dotenv
+import os
 router = APIRouter(
     prefix="/Auth",
     tags=['Auth']
@@ -26,10 +28,10 @@ class EnterUserData(BaseModel):
         }
     }
 #################################### Access_Token ####################################
-SECRET_KEY = "DHIWEHF83YFWHFKJEBF3E0RU4390RUEDFNWEBFWEFlkheugerhfiuf98rfbfb8U0ihbhjbHVUUG88UBJVGCYTDFU879E7983289H34JBWJEOGUE89GEEVBEJVHEIYH"
 ALGORITHM = 'HS256'
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
-
+load_dotenv()
+SECRET_KEY = os.getenv('SECRET_KEY')
 
 
 def create_token(email:str,user_id:int):

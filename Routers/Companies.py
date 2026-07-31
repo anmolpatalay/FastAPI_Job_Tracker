@@ -13,8 +13,7 @@ router = APIRouter(
 db_dependency = Annotated[Session,Depends(get_db)]
 current_user_dependency = Annotated[int,Depends(current_user)]
 
-class AddCompany(BaseModel):
-
+class CompanyCreate(BaseModel):
     company_name : str
     note : str
 
@@ -27,9 +26,39 @@ class AddCompany(BaseModel):
            }
        }
 
+class CompanyOut(BaseModel):
+    company_id: int
+    user_id: int
+    company_name: str
+    note: str
 
-@router.post("/company",status_code=status.HTTP_201_CREATED)
-async def add_new_company(db: db_dependency, user :current_user_dependency,company : AddCompany = None):
+    model_config = {
+        "from_attributes": True,
+        "json_schema_extra":{
+            "example": {
+                "company_id": 1,
+                "user_id": 1,
+                "company_name": "Acme Corp",
+                "note": "Important client"
+            }
+        }
+    }
+
+class CompanyUpdate(BaseModel):
+    company_name: str
+    note: str
+
+    model_config = {
+        "json_schema_extra":{
+            "example": {
+                "company_name": "Acme Corp",
+                "note": "Updated note"
+            }
+        }
+    }
+
+@router.post("/company",status_code=status.HTTP_201_CREATED,response_model=CompanyOut)
+async def add_new_company(db: db_dependency, user :current_user_dependency, company: CompanyCreate):
     if user is None:
         raise HTTPException(status_code=404,detail="User not found/auntenticated")
     
@@ -41,30 +70,32 @@ async def add_new_company(db: db_dependency, user :current_user_dependency,compa
     db.add(company_model)
     db.commit()
     db.refresh(company_model)
+    return CompanyOut.model_validate(company_model)
 
-@router.get("/company/get_all",status_code=status.HTTP_200_OK)
+@router.get("/company/get_all",status_code=status.HTTP_200_OK, response_model=list[CompanyOut])
 async def get_company_details(db: db_dependency, user :current_user_dependency): 
     companies = db.query(Companies).filter(Companies.user_id == user).all()
-    return companies
+    return [CompanyOut.model_validate(company) for company in companies]
 
-@router.get("/company_by_id/",status_code=status.HTTP_200_OK)  # if you put id before db dependency as a query parameter, it wont work. if you want to keep id before db dependeny in the path parameter
+@router.get("/company_by_id/",status_code=status.HTTP_200_OK, response_model=CompanyOut)  # if you put id before db dependency as a query parameter, it wont work. if you want to keep id before db dependeny in the path parameter
 async def get_company_by_id(db: db_dependency, user :current_user_dependency,id :int =Query(ge=0,le=100)) : 
     if user is None:
         raise HTTPException(status_code=404,detail="user not found")
     company = db.query(Companies).filter(Companies.company_id == id, Companies.user_id ==user).first()
     if company is None:
         raise HTTPException(status_code=404,detail='company Not found')
-    return company
+    return CompanyOut.model_validate(company)
 
-@router.put("/company_detail_update/{id}",status_code=status.HTTP_202_ACCEPTED)
-async def update_company_detail(id: int,db: db_dependency, user :current_user_dependency,updated_note: str,updated_company_name: str): 
+@router.put("/company_detail_update/{id}",status_code=status.HTTP_202_ACCEPTED,response_model=CompanyOut)
+async def update_company_detail(id: int,db: db_dependency, user :current_user_dependency, company: CompanyUpdate): 
     company_to_update = db.query(Companies).filter(Companies.company_id == id,Companies.user_id==user).first()
     if company_to_update is None:
         raise HTTPException(status_code=404,detail='company Not found')
-    company_to_update.company_name = updated_company_name
-    company_to_update.note = updated_note
+    company_to_update.company_name = company.company_name
+    company_to_update.note = company.note
     db.commit()
     db.refresh(company_to_update)
+    return CompanyOut.model_validate(company_to_update)
 
 @router.delete("/company_deleted/",status_code=status.HTTP_200_OK)
 async def delete_a_company(db: db_dependency,usr: current_user_dependency,id:int) :
