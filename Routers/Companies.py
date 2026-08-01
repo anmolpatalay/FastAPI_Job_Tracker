@@ -73,12 +73,18 @@ async def add_new_company(db: db_dependency, user :current_user_dependency, comp
     return CompanyOut.model_validate(company_model)
 
 @router.get("/company/get_all",status_code=status.HTTP_200_OK, response_model=list[CompanyOut])
-async def get_company_details(db: db_dependency, user :current_user_dependency): 
-    companies = db.query(Companies).filter(Companies.user_id == user).all()
+async def get_company_details(
+    db: db_dependency,
+    user :current_user_dependency,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, gt=0, le=100)
+): 
+    companies = db.query(Companies).filter(Companies.user_id == user)
+    companies = companies.offset(skip).limit(limit).all()
     return [CompanyOut.model_validate(company) for company in companies]
 
-@router.get("/company_by_id/",status_code=status.HTTP_200_OK, response_model=CompanyOut)  # if you put id before db dependency as a query parameter, it wont work. if you want to keep id before db dependeny in the path parameter
-async def get_company_by_id(db: db_dependency, user :current_user_dependency,id :int =Query(ge=0,le=100)) : 
+@router.get("/company/{id}/",status_code=status.HTTP_200_OK, response_model=CompanyOut)  #Parameters with default values must come after parameters without default values.
+async def get_company_by_id(db: db_dependency, user :current_user_dependency,id :int =Path(ge=0,le=100)) : 
     if user is None:
         raise HTTPException(status_code=404,detail="user not found")
     company = db.query(Companies).filter(Companies.company_id == id, Companies.user_id ==user).first()

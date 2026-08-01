@@ -110,11 +110,12 @@ async def add_new_application(db: db_dependency,application : ApplicationCreate,
     return ApplicationOut.model_validate(new_application)
 
 @router.get("/applications/",status_code=status.HTTP_200_OK, response_model=List[ApplicationOut])
-async def get_all_applications(db: db_dependency, user: user_dependency):
+async def get_all_applications(db: db_dependency, user: user_dependency,skip : int =0, limit : int =10):
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not authenticated")
 
-    applications = db.query(Applications).filter(Applications.user_id == user).all()
+    applications = db.query(Applications).filter(Applications.user_id == user)
+    applications = applications.offset(skip).limit(limit).all()
     if not applications:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No applications found for the user")
 
