@@ -90,7 +90,7 @@ async def login(db: db_dependency,form_data : OAuth2PasswordRequestForm = Depend
 
 
 @router.get("/auth/me/")
-async def get_current_user(db : db_dependency,user: str = auth_dependency): 
+async def get_current_user(user: str = auth_dependency): 
     payload = jwt.decode(user,SECRET_KEY,algorithms=[ALGORITHM])
     email = payload.get('sub')
     user_id = payload.get('id')
