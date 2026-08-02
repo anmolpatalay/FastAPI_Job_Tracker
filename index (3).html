@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Job Application Tracker</title>
+<title>Departures — Job Application Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -757,6 +757,7 @@
   <!-- Tabs -->
   <div class="tabs" id="appTabs">
     <button class="tab active" data-tab="board" id="tabBoard">Board</button>
+    <button class="tab" data-tab="interviews" id="tabInterviews">Interviews</button>
     <button class="tab" data-tab="admin" id="tabAdmin" style="display:none;">Admin</button>
   </div>
 
@@ -798,6 +799,32 @@
       <div class="empty" id="emptyState" style="display:none;">
         <div class="title">No applications yet</div>
         <div>Add your first one to start tracking.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Interviews Tab -->
+  <div class="tab-content" id="contentInterviews">
+    <div class="toolbar">
+      <div class="toolbar-left"></div>
+      <button class="btn btn-primary" id="addInterviewBtn">+ New interview</button>
+    </div>
+
+    <div class="table-wrap">
+      <table class="board" id="interviewsTable">
+        <thead>
+          <tr>
+            <th>Company</th>
+            <th>Role</th>
+            <th>Round</th>
+            <th>Scheduled</th>
+          </tr>
+        </thead>
+        <tbody id="interviewsBody"></tbody>
+      </table>
+      <div class="empty" id="interviewsEmpty" style="display:none;">
+        <div class="title">No interviews scheduled</div>
+        <div>Add one once you've got a call lined up.</div>
       </div>
     </div>
   </div>
@@ -925,6 +952,31 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="interviewModalBackdrop">
+  <div class="modal">
+    <h2>New interview</h2>
+    <p class="sub">Log an upcoming interview round.</p>
+    <form id="interviewForm">
+      <div class="field">
+        <label for="interviewApplication">Application</label>
+        <select id="interviewApplication" required></select>
+      </div>
+      <div class="field">
+        <label for="interviewRound">Round name</label>
+        <input id="interviewRound" type="text" placeholder="Phone Screen" required>
+      </div>
+      <div class="field">
+        <label for="interviewScheduledAt">Scheduled at</label>
+        <input id="interviewScheduledAt" type="datetime-local" required>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" id="interviewCancelBtn">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="interviewSaveBtn">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="companiesListBackdrop">
   <div class="modal">
     <h2>Your companies</h2>
@@ -980,7 +1032,7 @@ const CONFIG = {
     applicationPatch: (id) => `/Applications/applications/${id}`,
     companies:      '/Companies/company',
     companiesList:  '/Companies/company/get_all',
-    interviews:     '/Interviews/interviews/',
+    interviews:     '/Interviews/interviews',
     changePassword: '/Auth/auth/reset_password'
   }
 };
@@ -1107,6 +1159,18 @@ async function fetchInterviews() {
   } catch (e) {
     return [];
   }
+}
+
+async function createInterview(applicationId, roundName, scheduledAt) {
+  return apiFetch(CONFIG.ENDPOINTS.interviews, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      application_id: applicationId,
+      round_name: roundName,
+      scheduled_at: scheduledAt
+    })
+  });
 }
 
 /* ---------------- toast ---------------- */
@@ -1306,6 +1370,108 @@ async function loadCompanies() {
     .join('');
 }
 
+/* ---------------- interviews ---------------- */
+async function loadInterviews() {
+  try {
+    const data = await fetchInterviews();
+    state.interviews = Array.isArray(data) ? data : [];
+  } catch (err) {
+    state.interviews = [];
+  }
+  renderInterviews();
+}
+
+function applicationLabel(app) {
+  if (!app) return null;
+  const companyLabel = app.company_name || (app.comapany_id ? `Company #${app.comapany_id}` : 'Unknown company');
+  return `${companyLabel} — ${app.role_title || 'Untitled role'}`;
+}
+
+function renderInterviews() {
+  const body = document.getElementById('interviewsBody');
+  const empty = document.getElementById('interviewsEmpty');
+
+  if (state.interviews.length === 0) {
+    body.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  const sorted = [...state.interviews].sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
+
+  body.innerHTML = sorted.map(iv => {
+    const app = state.applications.find(a => a.application_id === iv.application_id);
+    const companyLabel = app ? (app.company_name || (app.comapany_id ? `Company #${app.comapany_id}` : '—')) : `Application #${iv.application_id}`;
+    const roleLabel = app ? (app.role_title || '—') : '—';
+    const dateStr = iv.scheduled_at
+      ? new Date(iv.scheduled_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+      : '—';
+    return `
+      <tr>
+        <td class="company" data-label="Company">${escapeHtml(companyLabel)}</td>
+        <td class="role" data-label="Role">${escapeHtml(roleLabel)}</td>
+        <td data-label="Round">${escapeHtml(iv.round_name)}</td>
+        <td data-label="Scheduled">${dateStr}</td>
+      </tr>`;
+  }).join('');
+}
+
+function populateInterviewAppSelect() {
+  const select = document.getElementById('interviewApplication');
+  if (state.applications.length === 0) {
+    select.innerHTML = `<option value="">No applications yet — add one first</option>`;
+    return;
+  }
+  select.innerHTML = state.applications.map(a =>
+    `<option value="${a.application_id}">${escapeAttr(applicationLabel(a))}</option>`
+  ).join('');
+}
+
+const interviewModalBackdrop = document.getElementById('interviewModalBackdrop');
+
+document.getElementById('addInterviewBtn').addEventListener('click', () => {
+  if (state.applications.length === 0) {
+    showToast('Add an application first, then schedule an interview for it.', true);
+    return;
+  }
+  document.getElementById('interviewForm').reset();
+  populateInterviewAppSelect();
+  interviewModalBackdrop.classList.add('open');
+});
+document.getElementById('interviewCancelBtn').addEventListener('click', () => {
+  interviewModalBackdrop.classList.remove('open');
+});
+interviewModalBackdrop.addEventListener('click', (e) => {
+  if (e.target === interviewModalBackdrop) interviewModalBackdrop.classList.remove('open');
+});
+
+document.getElementById('interviewForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const applicationId = parseInt(document.getElementById('interviewApplication').value, 10);
+  const roundName = document.getElementById('interviewRound').value.trim();
+  const scheduledAtRaw = document.getElementById('interviewScheduledAt').value; // e.g. 2026-08-01T15:30
+  const btn = document.getElementById('interviewSaveBtn');
+
+  if (!applicationId) {
+    showToast('Select an application first.', true);
+    return;
+  }
+
+  btn.disabled = true;
+  try {
+    await createInterview(applicationId, roundName, scheduledAtRaw);
+    showToast('Interview added.');
+    interviewModalBackdrop.classList.remove('open');
+    await loadInterviews();
+    if (state.isAdmin) await loadAdminData();
+  } catch (err) {
+    showToast(err.message, true);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
 /* ---------------- change password modal ---------------- */
 const passwordModalBackdrop = document.getElementById('passwordModalBackdrop');
 
@@ -1436,6 +1602,7 @@ document.getElementById('appForm').addEventListener('submit', async (e) => {
     }
     closeAppModal();
     await loadApplications();
+    renderInterviews();
     if (state.isAdmin) await loadAdminData();
   } catch (err) {
     showToast(err.message, true);
@@ -1450,6 +1617,7 @@ window.handleDeleteApp = async function(id) {
     await deleteApplication(id);
     showToast('Application deleted.');
     await loadApplications();
+    renderInterviews();
     if (state.isAdmin) await loadAdminData();
   } catch (err) {
     showToast(err.message, true);
@@ -1650,6 +1818,7 @@ async function boot() {
 
   await loadCompanies();
   await loadApplications();
+  await loadInterviews();
 
   if (state.isAdmin) {
     await loadAdminData();

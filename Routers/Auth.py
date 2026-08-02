@@ -3,7 +3,7 @@ from database import get_db
 from typing import Annotated
 from sqlalchemy.orm import Session
 from models import Users
-from pydantic import BaseModel,EmailStr,Field,StringConstraints,field_validator
+from pydantic import BaseModel,EmailStr,Field,StringConstraints,field_validator,ConfigDict
 from datetime import datetime,timedelta,timezone
 from utils import hash_password,bcrypt_context
 from jose import jwt, JWTError
@@ -63,6 +63,11 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 load_dotenv()
 SECRET_KEY = os.getenv('SECRET_KEY')
 
+class UserOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)  # pydantic v2; use `orm_mode=True` in v1
+    id: int
+    email: str
+    created_at: datetime | None = None
 
 def create_token(email:str,user_id:int):
     expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -135,18 +140,17 @@ async def get_current_user(user: str = auth_dependency):
     return user_id
 
 
-@router.get("/Auth/all")
-async def get_all(db:db_dependency,user: str =auth_dependency):
+@router.get("/Auth/all", response_model=list[UserOut])
+async def get_all(db: db_dependency, user: str = auth_dependency):
     try:
-        payload = jwt.decode(user,SECRET_KEY,algorithms=[ALGORITHM])
+        payload = jwt.decode(user, SECRET_KEY, algorithms=[ALGORITHM])
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
 
     email = payload.get('sub')
-    if email.split("@")[0] =="admin":
-        all_users = db.query(Users).all()
-        return all_users
-    return db.query(Users).filter(Users.email == email).first()
+    if email.split("@")[0] == "admin":
+        return db.query(Users).all()
+    return [db.query(Users).filter(Users.email == email).first()]
 
 @router.put("/auth/reset_password",status_code=status.HTTP_202_ACCEPTED,response_model= PasswordOut)
 async def reset_password(
@@ -166,3 +170,4 @@ async def reset_password(
     db.refresh(user_info)
 
     return PasswordOut(new_password=password_data.new_password)
+

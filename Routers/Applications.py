@@ -67,6 +67,7 @@ class ApplicationOut(BaseModel):
     application_id: int
     user_id: int
     comapany_id: int
+    company_name : str|None = None
     role_title: str
     status: Literal['applied','screening','interviewing','offer','rejected','withdrawn']
     applied_date: date
@@ -79,6 +80,7 @@ class ApplicationOut(BaseModel):
                 'application_id': 1,
                 'user_id': 1,
                 'comapany_id': 2,
+                'company_name':'Google',
                 'role_title': 'SDE',
                 'status': 'applied',
                 'applied_date': '2026-07-31',
@@ -87,30 +89,37 @@ class ApplicationOut(BaseModel):
         }
     }
 
-@router.post("/applications/",status_code=status.HTTP_201_CREATED, response_model=ApplicationOut)
-async def add_new_application(db: db_dependency,application : ApplicationCreate,user: user_dependency,company_name: str):
+def to_application_out(application: Applications, db: Session) -> ApplicationOut:
+    out = ApplicationOut.model_validate(application)
+    company = db.query(Companies).filter(Companies.company_id == application.comapany_id).first()
+    out.company_name = company.company_name if company else None
+    return out
+
+@router.post("/applications/", status_code=status.HTTP_201_CREATED, response_model=ApplicationOut)
+async def add_new_application(db: db_dependency, application: ApplicationCreate, user: user_dependency, company_name: str):
     company_detail = db.query(Companies).filter(
         func.lower(Companies.company_name) == company_name.lower(),
         Companies.user_id == user
     ).first()
     if company_detail is None:
-        raise HTTPException(status_code=404,detail="enter valid company name")
+        raise HTTPException(status_code=404, detail="enter valid company name")
 
     new_application = Applications(
-        user_id = user,
-        comapany_id = company_detail.company_id,
-        role_title = application.role_title,
-        status = application.status,
-        applied_date = date.today(),
-        job_url = application.job_url
+        user_id=user,
+        comapany_id=company_detail.company_id,
+        role_title=application.role_title,
+        status=application.status,
+        applied_date=date.today(),
+        job_url=application.job_url
     )
     db.add(new_application)
     db.commit()
     db.refresh(new_application)
-    return ApplicationOut.model_validate(new_application)
+    return to_application_out(new_application, db)
 
-@router.get("/applications/",status_code=status.HTTP_200_OK, response_model=List[ApplicationOut])
-async def get_all_applications(db: db_dependency, user: user_dependency,skip : int =0, limit : int =10):
+
+@router.get("/applications/", status_code=status.HTTP_200_OK, response_model=List[ApplicationOut])
+async def get_all_applications(db: db_dependency, user: user_dependency, skip: int = 0, limit: int = 10):
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not authenticated")
 
@@ -119,9 +128,10 @@ async def get_all_applications(db: db_dependency, user: user_dependency,skip : i
     if not applications:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No applications found for the user")
 
-    return [ApplicationOut.model_validate(application) for application in applications]
+    return [to_application_out(application, db) for application in applications]
 
-@router.get("/applications/{application_id}",status_code=status.HTTP_200_OK, response_model=ApplicationOut)
+
+@router.get("/applications/{application_id}", status_code=status.HTTP_200_OK, response_model=ApplicationOut)
 async def get_application_by_id(application_id: int, db: db_dependency, user: user_dependency):
     application = db.query(Applications).filter(
         Applications.application_id == application_id,
@@ -129,9 +139,10 @@ async def get_application_by_id(application_id: int, db: db_dependency, user: us
     ).first()
     if application is None:
         raise HTTPException(status_code=404, detail="application not found")
-    return ApplicationOut.model_validate(application)
+    return to_application_out(application, db)
 
-@router.put("/applications/{application_id}",status_code=status.HTTP_202_ACCEPTED, response_model=ApplicationOut)
+
+@router.put("/applications/{application_id}", status_code=status.HTTP_202_ACCEPTED, response_model=ApplicationOut)
 async def update_application_by_id(application_id: int, db: db_dependency, user: user_dependency, updated: ApplicationUpdate):
     application = db.query(Applications).filter(
         Applications.application_id == application_id,
@@ -155,25 +166,17 @@ async def update_application_by_id(application_id: int, db: db_dependency, user:
 
     db.commit()
     db.refresh(application)
-    return ApplicationOut.model_validate(application)
+    return to_application_out(application, db)
 
-@router.delete("/applications/{application_id}",status_code=status.HTTP_200_OK)
-async def delete_application_by_id(application_id: int, db: db_dependency, user: user_dependency):
-    application = db.query(Applications).filter(Applications.application_id == application_id,Applications.user_id == user).first()
-    if application is None:
-        raise HTTPException(status_code=404, detail="application not found")
-    db.delete(application)
-    db.commit()
-    return {"detail": "application deleted"}
 
-@router.patch("/applications/{application_id}",status_code=status.HTTP_200_OK, response_model=ApplicationOut)
+@router.patch("/applications/{application_id}", status_code=status.HTTP_200_OK, response_model=ApplicationOut)
 async def patch_an_application_small_change(application_id: int, db: db_dependency, user: user_dependency, changes: ApplicationPatch):
-    application = db.query(Applications).filter(Applications.application_id == application_id,Applications.user_id == user).first()
+    application = db.query(Applications).filter(Applications.application_id == application_id, Applications.user_id == user).first()
     if application is None:
         raise HTTPException(status_code=404, detail="application not found")
 
     if changes.company_name is not None:
-        company_detail = db.query(Companies).filter(func.lower(Companies.company_name) == changes.company_name.lower(),Companies.user_id == user).first()
+        company_detail = db.query(Companies).filter(func.lower(Companies.company_name) == changes.company_name.lower(), Companies.user_id == user).first()
         if company_detail is None:
             raise HTTPException(status_code=404, detail="company not found")
         application.comapany_id = company_detail.company_id
@@ -187,4 +190,14 @@ async def patch_an_application_small_change(application_id: int, db: db_dependen
 
     db.commit()
     db.refresh(application)
-    return ApplicationOut.model_validate(application)
+    return to_application_out(application, db)
+
+
+@router.delete("/applications/{application_id}",status_code=status.HTTP_200_OK)
+async def delete_application_by_id(application_id: int, db: db_dependency, user: user_dependency):
+    application = db.query(Applications).filter(Applications.application_id == application_id,Applications.user_id == user).first()
+    if application is None:
+        raise HTTPException(status_code=404, detail="application not found")
+    db.delete(application)
+    db.commit()
+    return {"detail": "application deleted"}

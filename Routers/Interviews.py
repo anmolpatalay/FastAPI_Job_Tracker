@@ -70,3 +70,26 @@ async def add_interview_details(interview: InterviewCreate, db: db_dependency, u
     db.commit()
     db.refresh(new_interview)
     return InterviewOut.model_validate(new_interview)
+
+@router.get("/interviews", response_model=list[InterviewOut])
+async def get_all_interviews(db: db_dependency, user: user_dependency):
+    interviews = (
+        db.query(Interviews)
+        .join(Applications, Interviews.application_id == Applications.application_id)
+        .filter(Applications.user_id == user)
+        .all()
+    )
+    return [InterviewOut.model_validate(interview) for interview in interviews]
+
+
+@router.get("/interviews/{interview_id}", response_model=InterviewOut)
+async def get_interview_by_id(interview_id: int, db: db_dependency, user: user_dependency):
+    interview = (
+        db.query(Interviews)
+        .join(Applications, Interviews.application_id == Applications.application_id)
+        .filter(Interviews.interview_id == interview_id, Applications.user_id == user)
+        .first()
+    )
+    if interview is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Interview not found")
+    return InterviewOut.model_validate(interview)
