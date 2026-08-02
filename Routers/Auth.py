@@ -3,21 +3,44 @@ from database import get_db
 from typing import Annotated
 from sqlalchemy.orm import Session
 from models import Users
-from pydantic import BaseModel,EmailStr
+from pydantic import BaseModel,EmailStr,Field,StringConstraints,field_validator
 from datetime import datetime,timedelta,timezone
 from utils import hash_password,bcrypt_context
 from jose import jwt, JWTError
 from fastapi.security import OAuth2PasswordBearer,OAuth2PasswordRequestForm
 from dotenv import load_dotenv
 import os
+import re
 router = APIRouter(
     prefix="/Auth",
     tags=['Auth']
 )
 
 class EnterUserData(BaseModel):
-    email : EmailStr
-    password : str
+    email: EmailStr
+    password: str
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, value: str):
+        if len(value) < 8:
+            raise ValueError("Password must be at least 8 characters long")
+
+        if not re.search(r"[A-Z]", value):
+            raise ValueError("Password must contain at least one uppercase letter")
+
+        if not re.search(r"[a-z]", value):
+            raise ValueError("Password must contain at least one lowercase letter")
+
+        if not re.search(r"\d", value):
+            raise ValueError("Password must contain at least one digit")
+
+        if not re.search(r"[@$!%*?&#]", value):
+            raise ValueError("Password must contain at least one special character")
+
+        return value
+
+
 
     model_config = {
         "json_schema_extra":{
@@ -73,7 +96,7 @@ async def current_user(db : db_dependency,user: str = auth_dependency):
 
 
 
-@router.post("/auth/registering new user",status_code=status.HTTP_201_CREATED)
+@router.post("/Auth/registering new user",status_code=status.HTTP_201_CREATED)
 async def register_new_user(db : db_dependency,user: EnterUserData):
     if db.query(Users).filter(Users.email == user.email).first():
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="Email already exists")
@@ -100,7 +123,7 @@ async def login(db: db_dependency,form_data : OAuth2PasswordRequestForm = Depend
         raise HTTPException(status_code=401,detail="Invalid Credentials")
 
 
-@router.get("/auth/me/")
+@router.get("/Auth/me/")
 async def get_current_user(user: str = auth_dependency): 
     try:
         payload = jwt.decode(user,SECRET_KEY,algorithms=[ALGORITHM])
@@ -112,7 +135,7 @@ async def get_current_user(user: str = auth_dependency):
     return user_id
 
 
-@router.get("/auth/all")
+@router.get("/Auth/all")
 async def get_all(db:db_dependency,user: str =auth_dependency):
     try:
         payload = jwt.decode(user,SECRET_KEY,algorithms=[ALGORITHM])
@@ -125,7 +148,7 @@ async def get_all(db:db_dependency,user: str =auth_dependency):
         return all_users
     return db.query(Users).filter(Users.email == email).first()
 
-@router.put("/auth",status_code=status.HTTP_202_ACCEPTED,response_model= PasswordOut)
+@router.put("/auth/reset_password",status_code=status.HTTP_202_ACCEPTED,response_model= PasswordOut)
 async def reset_password(
     db: db_dependency,
     password_data: EnterPassword,

@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from models import BASE
 from database import engine
 from Routers import Applications,Auth,Companies,Interviews
@@ -26,3 +27,10 @@ app.include_router(Interviews.router)
 @app.get("/health")
 async def get_health():
     return {"ststus":"healthy"}
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)

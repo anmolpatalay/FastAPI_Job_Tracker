@@ -1,0 +1,1668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Job Application Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d0d;
+    --surface: #141414;
+    --surface-hover: #1a1a1a;
+    --border: #262626;
+    --border-hover: #404040;
+    --text: #e5e5e5;
+    --text-dim: #a3a3a3;
+    --text-faint: #525252;
+    --accent: #f59e0b;
+    --accent-hover: #fbbf24;
+    --blue: #60a5fa;
+    --green: #4ade80;
+    --red: #f87171;
+    --gray: #737373;
+    --radius: 4px;
+    --font: 'Inter', system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection { background: var(--accent); color: #000; }
+
+  input, select, button, textarea {
+    font-family: var(--font);
+    font-size: 14px;
+    color: var(--text);
+  }
+
+  /* ========== AUTH ========== */
+  #authScreen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .auth-box {
+    width: 100%;
+    max-width: 360px;
+  }
+
+  .auth-box h1 {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    letter-spacing: -0.02em;
+  }
+
+  .auth-box .sub {
+    color: var(--text-dim);
+    font-size: 14px;
+    margin-bottom: 32px;
+  }
+
+  .field {
+    margin-bottom: 16px;
+  }
+
+  .field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-faint);
+    margin-bottom: 6px;
+  }
+
+  .field input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .field input:focus {
+    border-color: var(--accent);
+  }
+
+  .field input::placeholder {
+    color: var(--text-faint);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-family: var(--font);
+    font-weight: 500;
+    font-size: 13px;
+    letter-spacing: 0.01em;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    padding: 9px 14px;
+    cursor: pointer;
+    transition: all 0.12s;
+    white-space: nowrap;
+  }
+
+  .btn:hover {
+    border-color: var(--border-hover);
+    background: var(--surface-hover);
+  }
+
+  .btn:active {
+    transform: translateY(1px);
+  }
+
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+    font-weight: 600;
+  }
+
+  .btn-primary:hover {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+  }
+
+  .btn-danger {
+    border-color: var(--red);
+    color: var(--red);
+  }
+
+  .btn-danger:hover {
+    background: rgba(248, 113, 113, 0.08);
+  }
+
+  .btn-block {
+    width: 100%;
+    padding: 11px 14px;
+  }
+
+  .auth-error {
+    background: rgba(248, 113, 113, 0.08);
+    border: 1px solid rgba(248, 113, 113, 0.25);
+    color: var(--red);
+    font-size: 13px;
+    padding: 10px 12px;
+    border-radius: var(--radius);
+    margin-bottom: 16px;
+    display: none;
+    line-height: 1.5;
+  }
+
+  .auth-switch {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .auth-switch a {
+    color: var(--accent);
+    cursor: pointer;
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .auth-switch a:hover {
+    text-decoration: underline;
+  }
+
+  /* ========== APP ========== */
+  #appScreen {
+    display: none;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  .app-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+  }
+
+  .app-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+  }
+
+  .app-header h1 span {
+    color: var(--accent);
+  }
+
+  .app-header .tagline {
+    color: var(--text-faint);
+    font-size: 13px;
+    margin-top: 2px;
+    font-family: var(--font-mono);
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .user-pill {
+    font-size: 12px;
+    color: var(--text-dim);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    border-radius: var(--radius);
+    font-family: var(--font-mono);
+  }
+
+  /* ========== TABS ========== */
+  .tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+
+  .tab {
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-dim);
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    margin-bottom: -1px;
+    transition: all 0.12s;
+  }
+
+  .tab:hover {
+    color: var(--text);
+  }
+
+  .tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .tab-content {
+    display: none;
+  }
+
+  .tab-content.active {
+    display: block;
+  }
+
+  /* ========== STATS ========== */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+
+  .stat {
+    background: var(--surface);
+    padding: 16px 12px;
+    text-align: center;
+  }
+
+  .stat .num {
+    font-family: var(--font-mono);
+    font-size: 22px;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  .stat .num.accent { color: var(--accent); }
+  .stat .num.blue { color: var(--blue); }
+  .stat .num.green { color: var(--green); }
+  .stat .num.red { color: var(--red); }
+  .stat .num.gray { color: var(--gray); }
+
+  .stat .label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-faint);
+    margin-top: 6px;
+  }
+
+  @media (max-width: 640px) {
+    .stats { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  /* ========== ADMIN STATS ========== */
+  .admin-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+
+  .admin-stat {
+    background: var(--surface);
+    padding: 20px 16px;
+    text-align: center;
+  }
+
+  .admin-stat .num {
+    font-family: var(--font-mono);
+    font-size: 28px;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  .admin-stat .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-faint);
+    margin-top: 8px;
+  }
+
+  @media (max-width: 640px) {
+    .admin-stats { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* ========== TOOLBAR ========== */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .toolbar-left {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  select.filter {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 10px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    outline: none;
+  }
+
+  select.filter:focus {
+    border-color: var(--accent);
+  }
+
+  /* ========== TABLE ========== */
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  table.board {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  table.board thead th {
+    text-align: left;
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-faint);
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    white-space: nowrap;
+  }
+
+  table.board tbody tr {
+    border-bottom: 1px solid var(--border);
+  }
+
+  table.board tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  table.board tbody tr:hover {
+    background: var(--surface-hover);
+  }
+
+  table.board td {
+    padding: 12px 14px;
+    vertical-align: middle;
+    color: var(--text-dim);
+  }
+
+  table.board td.role {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  table.board td.company {
+    color: var(--text);
+  }
+
+  .badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 3px 8px;
+    border-radius: 2px;
+    border: 1px solid;
+    white-space: nowrap;
+  }
+
+  .badge-applied { color: var(--accent); border-color: rgba(245, 158, 11, 0.3); background: rgba(245, 158, 11, 0.06); }
+  .badge-screening { color: var(--accent); border-color: rgba(245, 158, 11, 0.3); background: rgba(245, 158, 11, 0.06); }
+  .badge-interviewing { color: var(--blue); border-color: rgba(96, 165, 250, 0.3); background: rgba(96, 165, 250, 0.06); }
+  .badge-offer { color: var(--green); border-color: rgba(74, 222, 128, 0.3); background: rgba(74, 222, 128, 0.06); }
+  .badge-rejected { color: var(--red); border-color: rgba(248, 113, 113, 0.3); background: rgba(248, 113, 113, 0.06); }
+  .badge-withdrawn { color: var(--gray); border-color: rgba(115, 115, 115, 0.3); background: rgba(115, 115, 115, 0.06); }
+
+  .row-actions {
+    display: flex;
+    gap: 4px;
+    justify-content: flex-end;
+  }
+
+  .icon-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-dim);
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .icon-btn:hover {
+    border-color: var(--border-hover);
+    color: var(--text);
+  }
+
+  .icon-btn.danger:hover {
+    border-color: var(--red);
+    color: var(--red);
+  }
+
+  .job-link {
+    color: var(--blue);
+    text-decoration: none;
+    font-size: 12px;
+  }
+
+  .job-link:hover {
+    text-decoration: underline;
+  }
+
+  .empty {
+    padding: 60px 24px;
+    text-align: center;
+    color: var(--text-faint);
+  }
+
+  .empty .title {
+    color: var(--text-dim);
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+
+  /* ========== MODALS ========== */
+  .modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    padding: 20px;
+  }
+
+  .modal-backdrop.open {
+    display: flex;
+  }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    width: 100%;
+    max-width: 400px;
+    padding: 24px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .modal h2 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 4px;
+    letter-spacing: -0.01em;
+  }
+
+  .modal .sub {
+    font-size: 13px;
+    color: var(--text-faint);
+    margin: 0 0 20px;
+  }
+
+  .field select {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    padding: 10px 12px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .field select:focus {
+    border-color: var(--accent);
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 20px;
+  }
+
+  .modal-actions .btn {
+    flex: 1;
+  }
+
+  /* ========== TOAST ========== */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(8px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 16px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.2s;
+    z-index: 100;
+    white-space: nowrap;
+  }
+
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .toast.error {
+    border-color: rgba(248, 113, 113, 0.4);
+    color: var(--red);
+  }
+
+  /* ========== COMPANIES LIST ========== */
+  .company-item {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .company-item:last-child {
+    border-bottom: none;
+  }
+
+  .company-item .name {
+    font-weight: 500;
+    color: var(--text);
+    font-size: 13px;
+  }
+
+  .company-item .note {
+    color: var(--text-faint);
+    font-size: 12px;
+    margin-top: 2px;
+  }
+
+  /* ========== ADMIN PANEL ========== */
+  .admin-section {
+    margin-bottom: 32px;
+  }
+
+  .admin-section h3 {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .admin-table td.id {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-faint);
+  }
+
+  .admin-table td.email {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .count-pill {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 2px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    min-width: 28px;
+    text-align: center;
+  }
+
+  .count-pill.zero {
+    color: var(--text-faint);
+    border-color: var(--border);
+  }
+
+  /* ========== MOBILE ========== */
+  @media (max-width: 640px) {
+    #appScreen { padding: 20px 16px 60px; }
+    .app-header h1 { font-size: 22px; }
+    table.board thead { display: none; }
+    table.board, table.board tbody, table.board tr, table.board td { display: block; width: 100%; }
+    table.board tr { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+    table.board td { padding: 4px 0; border: none; display: flex; justify-content: space-between; align-items: center; }
+    table.board td::before {
+      content: attr(data-label);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-faint);
+      font-weight: 500;
+    }
+    table.board td:last-child::before { display: none; }
+    .row-actions { justify-content: flex-start; margin-top: 4px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .btn, .toast { transition: none; }
+  }
+</style>
+<base target="_blank">
+</head>
+<body>
+
+<!-- ========== AUTH ========== -->
+<div id="authScreen">
+  <div class="auth-box">
+    <h1 id="authTitle">Welcome back</h1>
+    <p class="sub" id="authSub">Sign in to see your application board.</p>
+
+    <div class="auth-error" id="authError"></div>
+
+    <form id="authForm">
+      <div class="field">
+        <label for="authEmail">Email</label>
+        <input id="authEmail" type="email" autocomplete="username" placeholder="you@example.com" required>
+      </div>
+      <div class="field">
+        <label for="authPassword">Password</label>
+        <input id="authPassword" type="password" autocomplete="current-password" placeholder="••••••••" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" id="authSubmitBtn">Sign in</button>
+    </form>
+
+    <p class="auth-switch" id="authSwitch">New here? <a id="authSwitchLink">Create an account</a></p>
+  </div>
+</div>
+
+<!-- ========== APP ========== -->
+<div id="appScreen">
+
+  <div class="app-header">
+    <div>
+      <h1>Departures<span>_</span></h1>
+      <p class="tagline">Application tracking board</p>
+    </div>
+    <div class="header-actions">
+      <span class="user-pill" id="userChip">—</span>
+      <button class="btn" id="changePasswordBtn">Change password</button>
+      <button class="btn" id="logoutBtn">Sign out</button>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs" id="appTabs">
+    <button class="tab active" data-tab="board" id="tabBoard">Board</button>
+    <button class="tab" data-tab="admin" id="tabAdmin" style="display:none;">Admin</button>
+  </div>
+
+  <!-- Board Tab -->
+  <div class="tab-content active" id="contentBoard">
+    <div class="stats" id="statsStrip"></div>
+
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <select class="filter" id="statusFilter">
+          <option value="">All statuses</option>
+          <option value="applied">Applied</option>
+          <option value="screening">Screening</option>
+          <option value="interviewing">Interviewing</option>
+          <option value="offer">Offer</option>
+          <option value="rejected">Rejected</option>
+          <option value="withdrawn">Withdrawn</option>
+        </select>
+        <button class="btn" id="addCompanyBtn">+ Add company</button>
+        <button class="btn" id="viewCompaniesBtn">View companies</button>
+      </div>
+      <button class="btn btn-primary" id="addAppBtn">+ New application</button>
+    </div>
+
+    <div class="table-wrap">
+      <table class="board" id="boardTable">
+        <thead>
+          <tr>
+            <th>Company</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Applied</th>
+            <th>Link</th>
+            <th style="width: 80px;"></th>
+          </tr>
+        </thead>
+        <tbody id="boardBody"></tbody>
+      </table>
+      <div class="empty" id="emptyState" style="display:none;">
+        <div class="title">No applications yet</div>
+        <div>Add your first one to start tracking.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Tab -->
+  <div class="tab-content" id="contentAdmin">
+    <div class="admin-stats" id="adminStats"></div>
+
+    <div class="admin-section">
+      <h3>All Users</h3>
+      <div class="table-wrap">
+        <table class="board admin-table" id="adminUsersTable">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Email</th>
+              <th style="text-align:center">Applications</th>
+              <th style="text-align:center">Companies</th>
+              <th style="text-align:center">Interviews</th>
+              <th>Joined</th>
+            </tr>
+          </thead>
+          <tbody id="adminUsersBody"></tbody>
+        </table>
+        <div class="empty" id="adminEmpty" style="display:none;">
+          <div class="title">No users found</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="admin-section">
+      <h3>All Applications</h3>
+      <div class="table-wrap">
+        <table class="board" id="adminAppsTable">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Company</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Applied</th>
+              <th>Link</th>
+            </tr>
+          </thead>
+          <tbody id="adminAppsBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="admin-section">
+      <h3>All Companies</h3>
+      <div class="table-wrap">
+        <table class="board" id="adminCompaniesTable">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Note</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody id="adminCompaniesBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODALS ========== -->
+<div class="modal-backdrop" id="appModalBackdrop">
+  <div class="modal">
+    <h2 id="appModalTitle">New application</h2>
+    <p class="sub">Log a role you've applied to.</p>
+    <form id="appForm">
+      <div class="field">
+        <label for="appCompany">Company name</label>
+        <input id="appCompany" type="text" list="companyOptions" placeholder="Acme Corp" required>
+        <datalist id="companyOptions"></datalist>
+      </div>
+      <div class="field">
+        <label for="appRole">Role title</label>
+        <input id="appRole" type="text" placeholder="Backend Engineer" required>
+      </div>
+      <div class="field">
+        <label for="appStatus">Status</label>
+        <select id="appStatus">
+          <option value="applied">Applied</option>
+          <option value="screening">Screening</option>
+          <option value="interviewing">Interviewing</option>
+          <option value="offer">Offer</option>
+          <option value="rejected">Rejected</option>
+          <option value="withdrawn">Withdrawn</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="appUrl">Job posting URL (optional)</label>
+        <input id="appUrl" type="text" placeholder="https://...">
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" id="appCancelBtn">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="appSaveBtn">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="companyModalBackdrop">
+  <div class="modal">
+    <h2>Add company</h2>
+    <p class="sub">Companies you're applying to.</p>
+    <form id="companyForm">
+      <div class="field">
+        <label for="companyName">Company name</label>
+        <input id="companyName" type="text" placeholder="Acme Corp" required>
+      </div>
+      <div class="field">
+        <label for="companyNote">Note (optional)</label>
+        <input id="companyNote" type="text" placeholder="Referred by a friend">
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" id="companyCancelBtn">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="companiesListBackdrop">
+  <div class="modal">
+    <h2>Your companies</h2>
+    <p class="sub">Every company you've logged so far.</p>
+    <div id="companiesListBody" style="max-height: 320px; overflow-y: auto;"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn" id="companiesListCloseBtn" style="flex:1;">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="passwordModalBackdrop">
+  <div class="modal">
+    <h2>Change password</h2>
+    <p class="sub">You'll stay signed in after this.</p>
+    <div class="auth-error" id="passwordError"></div>
+    <form id="passwordForm">
+      <div class="field">
+        <label for="oldPassword">Current password</label>
+        <input id="oldPassword" type="password" autocomplete="current-password" required>
+      </div>
+      <div class="field">
+        <label for="newPassword">New password</label>
+        <input id="newPassword" type="password" autocomplete="new-password" required>
+      </div>
+      <div class="field">
+        <label for="confirmNewPassword">Confirm new password</label>
+        <input id="confirmNewPassword" type="password" autocomplete="new-password" required>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" id="passwordCancelBtn">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="passwordSaveBtn">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =====================================================================
+   CONFIG
+===================================================================== */
+const CONFIG = {
+  API_BASE: 'http://127.0.0.1:8000',
+  ENDPOINTS: {
+    register:   '/Auth/Auth/registering%20new%20user',
+    login:      '/Auth/login',
+    me:         '/Auth/Auth/me/',
+    allUsers:   '/Auth/all',
+    applications:        '/Applications/applications/',
+    applicationById: (id) => `/Applications/applications/${id}`,
+    applicationPatch: (id) => `/Applications/applications/${id}`,
+    companies:      '/Companies/company',
+    companiesList:  '/Companies/company/get_all',
+    interviews:     '/Interviews/interviews/',
+    changePassword: '/Auth/auth/reset_password'
+  }
+};
+
+const STATUS_META = {
+  applied:       { cls: 'badge-applied', color: 'var(--accent)' },
+  screening:     { cls: 'badge-screening', color: 'var(--accent)' },
+  interviewing:  { cls: 'badge-interviewing', color: 'var(--blue)' },
+  offer:         { cls: 'badge-offer', color: 'var(--green)' },
+  rejected:      { cls: 'badge-rejected', color: 'var(--red)' },
+  withdrawn:     { cls: 'badge-withdrawn', color: 'var(--gray)' }
+};
+
+const STATUS_ORDER = ['applied','screening','interviewing','offer','rejected','withdrawn'];
+
+let state = {
+  token: sessionStorage.getItem('jt_token') || null,
+  currentUserEmail: sessionStorage.getItem('jt_email') || null,
+  applications: [],
+  companies: [],
+  interviews: [],
+  allUsers: [],
+  currentUser: null,
+  isAdmin: false,
+  editingId: null
+};
+
+/* ---------------- API helpers ---------------- */
+async function apiFetch(path, options = {}) {
+  const headers = options.headers || {};
+  if (state.token) headers['Authorization'] = `Bearer ${state.token}`;
+  const res = await fetch(CONFIG.API_BASE + path, { ...options, headers });
+  if (res.status === 401) {
+    signOut();
+    throw new Error('Session expired. Please sign in again.');
+  }
+  if (!res.ok) {
+    let detail = `Request failed (${res.status})`;
+    try {
+      const body = await res.json();
+      if (body.detail) detail = typeof body.detail === 'string' ? body.detail : JSON.stringify(body.detail);
+    } catch (e) {}
+    throw new Error(detail);
+  }
+  if (res.status === 204) return null;
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+async function login(email, password) {
+  const form = new URLSearchParams();
+  form.set('username', email);
+  form.set('password', password);
+  const res = await fetch(CONFIG.API_BASE + CONFIG.ENDPOINTS.login, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: form
+  });
+  if (!res.ok) {
+    let detail = 'Invalid email or password.';
+    try { const body = await res.json(); if (body.detail) detail = body.detail; } catch (e) {}
+    throw new Error(detail);
+  }
+  const data = await res.json();
+  return data.access_token;
+}
+
+async function register(email, password) {
+  return apiFetch(CONFIG.ENDPOINTS.register, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password })
+  });
+}
+
+async function fetchMe() {
+  return apiFetch(CONFIG.ENDPOINTS.me);
+}
+
+async function fetchAllUsers() {
+  return apiFetch(CONFIG.ENDPOINTS.allUsers);
+}
+
+async function fetchApplications() {
+  return apiFetch(CONFIG.ENDPOINTS.applications);
+}
+
+async function createApplication({ companyName, roleTitle, status, jobUrl }) {
+  const qs = new URLSearchParams({ company_name: companyName });
+  return apiFetch(`${CONFIG.ENDPOINTS.applications}?${qs.toString()}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ role_title: roleTitle, status, job_url: jobUrl || null })
+  });
+}
+
+async function patchApplication(id, changes) {
+  return apiFetch(CONFIG.ENDPOINTS.applicationPatch(id), {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(changes)
+  });
+}
+
+async function deleteApplication(id) {
+  return apiFetch(CONFIG.ENDPOINTS.applicationById(id), { method: 'DELETE' });
+}
+
+async function fetchCompanies() {
+  return apiFetch(CONFIG.ENDPOINTS.companiesList);
+}
+
+async function createCompany(name, note) {
+  return apiFetch(CONFIG.ENDPOINTS.companies, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ company_name: name, note: note || '' })
+  });
+}
+
+async function fetchInterviews() {
+  try {
+    return apiFetch(CONFIG.ENDPOINTS.interviews);
+  } catch (e) {
+    return [];
+  }
+}
+
+/* ---------------- toast ---------------- */
+let toastTimer = null;
+function showToast(message, isError = false) {
+  const el = document.getElementById('toast');
+  el.textContent = message;
+  el.classList.toggle('error', isError);
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
+}
+
+/* ---------------- auth screen logic ---------------- */
+let authMode = 'login';
+
+function setAuthMode(mode) {
+  authMode = mode;
+  const isLogin = mode === 'login';
+  document.getElementById('authTitle').textContent = isLogin ? 'Welcome back' : 'Get on board';
+  document.getElementById('authSub').textContent = isLogin
+    ? 'Sign in to see your application board.'
+    : 'Track every application in one place.';
+  document.getElementById('authSubmitBtn').textContent = isLogin ? 'Sign in' : 'Create account';
+  document.getElementById('authSwitch').innerHTML = isLogin
+    ? `New here? <a id="authSwitchLink">Create an account</a>`
+    : `Already have an account? <a id="authSwitchLink">Sign in</a>`;
+  document.getElementById('authSwitchLink').addEventListener('click', () => setAuthMode(isLogin ? 'register' : 'login'));
+  document.getElementById('authError').style.display = 'none';
+}
+
+document.getElementById('authSwitchLink').addEventListener('click', () => setAuthMode('register'));
+
+document.getElementById('authForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const errorEl = document.getElementById('authError');
+  const btn = document.getElementById('authSubmitBtn');
+  errorEl.style.display = 'none';
+  btn.disabled = true;
+  const originalLabel = btn.textContent;
+  btn.textContent = authMode === 'login' ? 'Signing in…' : 'Creating account…';
+
+  try {
+    if (authMode === 'register') {
+      await register(email, password);
+      const token = await login(email, password);
+      onSignedIn(token, email);
+    } else {
+      const token = await login(email, password);
+      onSignedIn(token, email);
+    }
+  } catch (err) {
+    errorEl.textContent = err.message || 'Something went wrong. Try again.';
+    errorEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+  }
+});
+
+function onSignedIn(token, email) {
+  state.token = token;
+  sessionStorage.setItem('jt_token', token);
+  if (email) {
+    state.currentUserEmail = email;
+    sessionStorage.setItem('jt_email', email);
+  }
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'block';
+  boot();
+}
+
+function signOut() {
+  state.token = null;
+  state.currentUserEmail = null;
+  sessionStorage.removeItem('jt_token');
+  sessionStorage.removeItem('jt_email');
+  document.getElementById('appScreen').style.display = 'none';
+  document.getElementById('authScreen').style.display = 'flex';
+  setAuthMode('login');
+  switchTab('board');
+  document.getElementById('tabAdmin').style.display = 'none';
+  state.isAdmin = false;
+  state.allUsers = [];
+  state.interviews = [];
+}
+
+document.getElementById('logoutBtn').addEventListener('click', signOut);
+
+/* ---------------- tabs ---------------- */
+function switchTab(tabName) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabName));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === 'content' + tabName.charAt(0).toUpperCase() + tabName.slice(1)));
+}
+
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+});
+
+/* ---------------- board rendering ---------------- */
+function renderStats() {
+  const counts = {};
+  STATUS_ORDER.forEach(s => counts[s] = 0);
+  state.applications.forEach(a => { if (counts[a.status] !== undefined) counts[a.status]++; });
+
+  const colorMap = {
+    applied: 'accent', screening: 'accent', interviewing: 'blue',
+    offer: 'green', rejected: 'red', withdrawn: 'gray'
+  };
+
+  const strip = document.getElementById('statsStrip');
+  strip.innerHTML = STATUS_ORDER.map(status => `
+    <div class="stat">
+      <div class="num ${colorMap[status]}">${counts[status]}</div>
+      <div class="label">${status}</div>
+    </div>
+  `).join('');
+}
+
+function renderBoard() {
+  const filter = document.getElementById('statusFilter').value;
+  const rows = filter ? state.applications.filter(a => a.status === filter) : state.applications;
+
+  const body = document.getElementById('boardBody');
+  const empty = document.getElementById('emptyState');
+
+  if (rows.length === 0) {
+    body.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  body.innerHTML = rows.map(app => {
+    const meta = STATUS_META[app.status] || STATUS_META.applied;
+    const dateStr = app.applied_date ? new Date(app.applied_date).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+    const companyLabel = app.company_name || (app.comapany_id ? `Company #${app.comapany_id}` : '—');
+    return `
+      <tr data-id="${app.application_id}">
+        <td class="company" data-label="Company">${escapeHtml(companyLabel)}</td>
+        <td class="role" data-label="Role">${escapeHtml(app.role_title)}</td>
+        <td data-label="Status"><span class="badge ${meta.cls}">${app.status}</span></td>
+        <td data-label="Applied">${dateStr}</td>
+        <td data-label="Link">${app.job_url ? `<a class="job-link" href="${escapeAttr(app.job_url)}" target="_blank" rel="noopener">View</a>` : '<span style="color:var(--text-faint)">—</span>'}</td>
+        <td data-label="">
+          <div class="row-actions">
+            <button class="icon-btn" title="Edit" onclick="openEditApp(${app.application_id})">✎</button>
+            <button class="icon-btn danger" title="Delete" onclick="handleDeleteApp(${app.application_id})">✕</button>
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escapeAttr(str) { return escapeHtml(str); }
+
+document.getElementById('statusFilter').addEventListener('change', renderBoard);
+
+/* ---------------- load applications ---------------- */
+async function loadApplications() {
+  try {
+    const data = await fetchApplications();
+    state.applications = Array.isArray(data) ? data : [];
+  } catch (err) {
+    state.applications = [];
+    showToast(err.message, true);
+  }
+  renderStats();
+  renderBoard();
+}
+
+async function changePassword(oldPassword, newPassword) {
+  return apiFetch(CONFIG.ENDPOINTS.changePassword, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ old_password: oldPassword, new_password: newPassword })
+  });
+}
+
+/* ---------------- companies ---------------- */
+async function loadCompanies() {
+  try {
+    const data = await fetchCompanies();
+    state.companies = Array.isArray(data) ? data : [];
+  } catch (err) {
+    state.companies = [];
+  }
+  const list = document.getElementById('companyOptions');
+  list.innerHTML = state.companies
+    .map(c => `<option value="${escapeAttr(c.company_name)}">`)
+    .join('');
+}
+
+/* ---------------- change password modal ---------------- */
+const passwordModalBackdrop = document.getElementById('passwordModalBackdrop');
+
+document.getElementById('changePasswordBtn').addEventListener('click', () => {
+  document.getElementById('passwordForm').reset();
+  document.getElementById('passwordError').style.display = 'none';
+  passwordModalBackdrop.classList.add('open');
+});
+document.getElementById('passwordCancelBtn').addEventListener('click', () => {
+  passwordModalBackdrop.classList.remove('open');
+});
+passwordModalBackdrop.addEventListener('click', (e) => {
+  if (e.target === passwordModalBackdrop) passwordModalBackdrop.classList.remove('open');
+});
+
+document.getElementById('passwordForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const oldPassword = document.getElementById('oldPassword').value;
+  const newPassword = document.getElementById('newPassword').value;
+  const confirmPassword = document.getElementById('confirmNewPassword').value;
+  const errorEl = document.getElementById('passwordError');
+  const btn = document.getElementById('passwordSaveBtn');
+  errorEl.style.display = 'none';
+
+  if (newPassword !== confirmPassword) {
+    errorEl.textContent = "New password and confirmation don't match.";
+    errorEl.style.display = 'block';
+    return;
+  }
+  if (newPassword.length < 8) {
+    errorEl.textContent = 'New password should be at least 8 characters.';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  try {
+    await changePassword(oldPassword, newPassword);
+    passwordModalBackdrop.classList.remove('open');
+    showToast('Password changed.');
+  } catch (err) {
+    errorEl.textContent = err.message || 'Could not change password.';
+    errorEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+/* ---------------- companies list modal ---------------- */
+function renderCompaniesList() {
+  const body = document.getElementById('companiesListBody');
+  if (state.companies.length === 0) {
+    body.innerHTML = `<p style="color:var(--text-faint); font-size:13px; padding:8px 0;">No companies logged yet.</p>`;
+    return;
+  }
+  body.innerHTML = state.companies.map(c => `
+    <div class="company-item">
+      <div class="name">${escapeHtml(c.company_name)}</div>
+      ${c.note ? `<div class="note">${escapeHtml(c.note)}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+document.getElementById('viewCompaniesBtn').addEventListener('click', async () => {
+  await loadCompanies();
+  renderCompaniesList();
+  document.getElementById('companiesListBackdrop').classList.add('open');
+});
+document.getElementById('companiesListCloseBtn').addEventListener('click', () => {
+  document.getElementById('companiesListBackdrop').classList.remove('open');
+});
+document.getElementById('companiesListBackdrop').addEventListener('click', (e) => {
+  if (e.target.id === 'companiesListBackdrop') e.target.classList.remove('open');
+});
+
+/* ---------------- application modal ---------------- */
+const appModalBackdrop = document.getElementById('appModalBackdrop');
+
+function openNewApp() {
+  state.editingId = null;
+  document.getElementById('appModalTitle').textContent = 'New application';
+  document.getElementById('appForm').reset();
+  appModalBackdrop.classList.add('open');
+  document.getElementById('appCompany').focus();
+}
+
+window.openEditApp = function(id) {
+  const app = state.applications.find(a => a.application_id === id);
+  if (!app) return;
+  state.editingId = id;
+  document.getElementById('appModalTitle').textContent = 'Edit application';
+  document.getElementById('appCompany').value = app.company_name || '';
+  document.getElementById('appRole').value = app.role_title || '';
+  document.getElementById('appStatus').value = app.status || 'applied';
+  document.getElementById('appUrl').value = app.job_url || '';
+  appModalBackdrop.classList.add('open');
+};
+
+function closeAppModal() {
+  appModalBackdrop.classList.remove('open');
+}
+
+document.getElementById('addAppBtn').addEventListener('click', openNewApp);
+document.getElementById('appCancelBtn').addEventListener('click', closeAppModal);
+appModalBackdrop.addEventListener('click', (e) => { if (e.target === appModalBackdrop) closeAppModal(); });
+
+document.getElementById('appForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const companyName = document.getElementById('appCompany').value.trim();
+  const roleTitle = document.getElementById('appRole').value.trim();
+  const status = document.getElementById('appStatus').value;
+  const jobUrl = document.getElementById('appUrl').value.trim();
+  const btn = document.getElementById('appSaveBtn');
+  btn.disabled = true;
+
+  try {
+    if (state.editingId) {
+      await patchApplication(state.editingId, {
+        role_title: roleTitle,
+        status,
+        job_url: jobUrl || null,
+        company_name: companyName || null
+      });
+      showToast('Application updated.');
+    } else {
+      await createApplication({ companyName, roleTitle, status, jobUrl });
+      showToast('Application added.');
+    }
+    closeAppModal();
+    await loadApplications();
+    if (state.isAdmin) await loadAdminData();
+  } catch (err) {
+    showToast(err.message, true);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+window.handleDeleteApp = async function(id) {
+  if (!confirm('Delete this application? This cannot be undone.')) return;
+  try {
+    await deleteApplication(id);
+    showToast('Application deleted.');
+    await loadApplications();
+    if (state.isAdmin) await loadAdminData();
+  } catch (err) {
+    showToast(err.message, true);
+  }
+};
+
+/* ---------------- company modal ---------------- */
+const companyModalBackdrop = document.getElementById('companyModalBackdrop');
+
+document.getElementById('addCompanyBtn').addEventListener('click', () => {
+  document.getElementById('companyForm').reset();
+  companyModalBackdrop.classList.add('open');
+  document.getElementById('companyName').focus();
+});
+document.getElementById('companyCancelBtn').addEventListener('click', () => companyModalBackdrop.classList.remove('open'));
+companyModalBackdrop.addEventListener('click', (e) => { if (e.target === companyModalBackdrop) companyModalBackdrop.classList.remove('open'); });
+
+document.getElementById('companyForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const name = document.getElementById('companyName').value.trim();
+  const note = document.getElementById('companyNote').value.trim();
+  try {
+    await createCompany(name, note);
+    showToast('Company added.');
+    companyModalBackdrop.classList.remove('open');
+    await loadCompanies();
+    if (state.isAdmin) await loadAdminData();
+  } catch (err) {
+    showToast(err.message, true);
+  }
+});
+
+/* ---------------- admin panel ---------------- */
+async function loadAdminData() {
+  if (!state.isAdmin) return;
+
+  try {
+    const usersData = await fetchAllUsers();
+    state.allUsers = Array.isArray(usersData) ? usersData : (usersData ? [usersData] : []);
+  } catch (err) {
+    state.allUsers = [];
+    showToast('Failed to load admin data: ' + err.message, true);
+  }
+
+  try {
+    const appsData = await fetchApplications();
+    state.applications = Array.isArray(appsData) ? appsData : [];
+  } catch (err) {
+    state.applications = [];
+  }
+
+  try {
+    const compData = await fetchCompanies();
+    state.companies = Array.isArray(compData) ? compData : [];
+  } catch (err) {
+    state.companies = [];
+  }
+
+  try {
+    const intData = await fetchInterviews();
+    state.interviews = Array.isArray(intData) ? intData : [];
+  } catch (err) {
+    state.interviews = [];
+  }
+
+  renderAdminPanel();
+}
+
+function renderAdminPanel() {
+  // Stats
+  const totalUsers = state.allUsers.length;
+  const totalApps = state.applications.length;
+  const totalCompanies = state.companies.length;
+  const totalInterviews = state.interviews.length;
+
+  document.getElementById('adminStats').innerHTML = `
+    <div class="admin-stat"><div class="num">${totalUsers}</div><div class="label">Users</div></div>
+    <div class="admin-stat"><div class="num accent">${totalApps}</div><div class="label">Applications</div></div>
+    <div class="admin-stat"><div class="num blue">${totalCompanies}</div><div class="label">Companies</div></div>
+    <div class="admin-stat"><div class="num green">${totalInterviews}</div><div class="label">Interviews</div></div>
+  `;
+
+  // Users table
+  const usersBody = document.getElementById('adminUsersBody');
+  const adminEmpty = document.getElementById('adminEmpty');
+
+  if (state.allUsers.length === 0) {
+    usersBody.innerHTML = '';
+    adminEmpty.style.display = 'block';
+  } else {
+    adminEmpty.style.display = 'none';
+    usersBody.innerHTML = state.allUsers.map(u => {
+      const userId = u.user_id || u.id;
+      const userEmail = u.email || '—';
+      const joined = u.created_at ? new Date(u.created_at).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+
+      const appCount = state.applications.filter(a =>
+        (a.user_id && a.user_id === userId) ||
+        (a.user_email && a.user_email === userEmail) ||
+        (a.email && a.email === userEmail)
+      ).length;
+
+      const compCount = state.companies.filter(c =>
+        (c.user_id && c.user_id === userId) ||
+        (c.user_email && c.user_email === userEmail) ||
+        (c.email && c.email === userEmail)
+      ).length;
+
+      const intCount = state.interviews.filter(i =>
+        (i.user_id && i.user_id === userId) ||
+        (i.user_email && i.user_email === userEmail) ||
+        (i.email && i.email === userEmail)
+      ).length;
+
+      return `
+        <tr>
+          <td class="id">${userId || '—'}</td>
+          <td class="email">${escapeHtml(userEmail)}</td>
+          <td style="text-align:center"><span class="count-pill ${appCount === 0 ? 'zero' : ''}">${appCount}</span></td>
+          <td style="text-align:center"><span class="count-pill ${compCount === 0 ? 'zero' : ''}">${compCount}</span></td>
+          <td style="text-align:center"><span class="count-pill ${intCount === 0 ? 'zero' : ''}">${intCount}</span></td>
+          <td style="color:var(--text-faint); font-size:12px;">${joined}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // All applications table
+  const appsBody = document.getElementById('adminAppsBody');
+  if (state.applications.length === 0) {
+    appsBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-faint); padding:24px;">No applications</td></tr>`;
+  } else {
+    appsBody.innerHTML = state.applications.map(app => {
+      const meta = STATUS_META[app.status] || STATUS_META.applied;
+      const dateStr = app.applied_date ? new Date(app.applied_date).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+      const companyLabel = app.company_name || (app.comapany_id ? `Company #${app.comapany_id}` : '—');
+      const user = state.allUsers.find(u =>
+        (u.user_id && u.user_id === app.user_id) ||
+        (u.id && u.id === app.user_id)
+      );
+      const userLabel = user ? user.email : (app.user_email || app.email || '—');
+      return `
+        <tr>
+          <td style="color:var(--text); font-size:12px;">${escapeHtml(userLabel)}</td>
+          <td class="company">${escapeHtml(companyLabel)}</td>
+          <td class="role">${escapeHtml(app.role_title)}</td>
+          <td><span class="badge ${meta.cls}">${app.status}</span></td>
+          <td style="color:var(--text-faint); font-size:12px;">${dateStr}</td>
+          <td>${app.job_url ? `<a class="job-link" href="${escapeAttr(app.job_url)}" target="_blank" rel="noopener">View</a>` : '<span style="color:var(--text-faint)">—</span>'}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // All companies table
+  const compsBody = document.getElementById('adminCompaniesBody');
+  if (state.companies.length === 0) {
+    compsBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-faint); padding:24px;">No companies</td></tr>`;
+  } else {
+    compsBody.innerHTML = state.companies.map(c => {
+      const created = c.created_at ? new Date(c.created_at).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+      return `
+        <tr>
+          <td class="id">${c.company_id || c.id || '—'}</td>
+          <td class="company">${escapeHtml(c.company_name)}</td>
+          <td style="color:var(--text-dim); font-size:12px;">${escapeHtml(c.note) || '<span style="color:var(--text-faint)">—</span>'}</td>
+          <td style="color:var(--text-faint); font-size:12px;">${created}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+}
+
+/* ---------------- boot ---------------- */
+async function boot() {
+  // Use stored email from login as primary source (me endpoint might be broken)
+  let email = state.currentUserEmail || sessionStorage.getItem('jt_email') || '';
+
+  try {
+    const me = await fetchMe();
+    state.currentUser = me;
+    // Prefer email from API response if available
+    if (typeof me === 'object' && me.email) {
+      email = me.email;
+      state.currentUserEmail = email;
+      sessionStorage.setItem('jt_email', email);
+    }
+    document.getElementById('userChip').textContent = email || 'Signed in';
+  } catch (err) {
+    document.getElementById('userChip').textContent = email || 'Signed in';
+  }
+
+  // Admin check: case-insensitive, works with stored email
+  if (email && email.split('@')[0].toLowerCase() === 'admin') {
+    state.isAdmin = true;
+    document.getElementById('tabAdmin').style.display = 'block';
+  }
+
+  await loadCompanies();
+  await loadApplications();
+
+  if (state.isAdmin) {
+    await loadAdminData();
+  }
+}
+
+if (state.token) {
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'block';
+  boot();
+} else {
+  setAuthMode('login');
+}
+</script>
+</body>
+</html>
