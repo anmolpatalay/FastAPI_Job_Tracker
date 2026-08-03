@@ -71,17 +71,24 @@ class UserOut(BaseModel):
 
 def create_token(email:str,user_id:int):
     expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-
     payload = {
         "sub" : email,
         "id" : user_id,
-        "exp" : expire
+        "exp": expire
     }
-    return jwt.encode(
-        payload,
-        SECRET_KEY,
-        algorithm=ALGORITHM
-    )
+    return jwt.encode(payload,SECRET_KEY,algorithm=ALGORITHM)
+
+
+def create_refresh_token(email,user_id):
+    expire = datetime.now(timezone.utc)+timedelta(days=2)
+    payload = {
+        "sub":email,
+        "id":user_id,
+        "exp": expire,
+        "type": "refresh"
+    }
+    return jwt.encode(payload,SECRET_KEY,algorithm=ALGORITHM)
+
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/Auth/login")
 auth_dependency = Depends(oauth2_scheme)
@@ -122,8 +129,13 @@ async def login(db: db_dependency,form_data : OAuth2PasswordRequestForm = Depend
     if user_detail is None:
         return {"user":"username not available"}
     if bcrypt_context.verify(password1,user_detail.hashed_password):
-        token = create_token(email = user_detail.email,user_id=user_detail.id)
-        return {"access_token": token, "token_type":'bearer'}
+        access_token = create_token(email=user_detail.email, user_id=user_detail.id)
+        refresh_token = create_refresh_token(email=user_detail.email, user_id=user_detail.id)
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer"
+        }
     else:
         raise HTTPException(status_code=401,detail="Invalid Credentials")
 
@@ -171,3 +183,25 @@ async def reset_password(
 
     return PasswordOut(new_password=password_data.new_password)
 
+@router.post("/refresh")
+async def refresh(refresh_token: str):
+    try:
+        payload = jwt.decode(
+            refresh_token,
+            SECRET_KEY,
+            algorithms=[ALGORITHM]
+        )
+    except JWTError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired refresh token") from exc
+
+    if payload.get("type") != "refresh":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token type")
+
+    access_token = create_token(payload["sub"], payload["id"])
+    new_refresh_token = create_refresh_token(payload["sub"], payload["id"])
+
+    return {
+        "access_token": access_token,
+        "refresh_token": new_refresh_token,
+        "token_type": "bearer"
+    }
