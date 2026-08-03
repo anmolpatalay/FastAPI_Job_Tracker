@@ -1,5 +1,7 @@
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from models import BASE
 from database import engine
 from Routers import Applications,Auth,Companies,Interviews
@@ -24,9 +26,10 @@ app.include_router(Applications.router)
 app.include_router(Companies.router)
 app.include_router(Interviews.router)
 
+
 @app.get("/health")
 async def get_health():
-    return {"ststus":"healthy"}
+    return {"status":"healthy"}
 
 app.add_middleware(
     CORSMiddleware,
@@ -34,3 +37,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+@app.get("/",include_in_schema=False)
+async def root():
+    return FileResponse("static/index.html")

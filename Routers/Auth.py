@@ -101,7 +101,7 @@ async def current_user(db : db_dependency,user: str = auth_dependency):
 
 
 
-@router.post("/Auth/registering new user",status_code=status.HTTP_201_CREATED)
+@router.post("/register",status_code=status.HTTP_201_CREATED)
 async def register_new_user(db : db_dependency,user: EnterUserData):
     if db.query(Users).filter(Users.email == user.email).first():
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="Email already exists")
@@ -128,7 +128,7 @@ async def login(db: db_dependency,form_data : OAuth2PasswordRequestForm = Depend
         raise HTTPException(status_code=401,detail="Invalid Credentials")
 
 
-@router.get("/Auth/me/")
+@router.get("/me")
 async def get_current_user(user: str = auth_dependency): 
     try:
         payload = jwt.decode(user,SECRET_KEY,algorithms=[ALGORITHM])
@@ -140,7 +140,7 @@ async def get_current_user(user: str = auth_dependency):
     return user_id
 
 
-@router.get("/Auth/all", response_model=list[UserOut])
+@router.get("/all", response_model=list[UserOut])
 async def get_all(db: db_dependency, user: str = auth_dependency):
     try:
         payload = jwt.decode(user, SECRET_KEY, algorithms=[ALGORITHM])
@@ -152,7 +152,7 @@ async def get_all(db: db_dependency, user: str = auth_dependency):
         return db.query(Users).all()
     return [db.query(Users).filter(Users.email == email).first()]
 
-@router.put("/auth/reset_password",status_code=status.HTTP_202_ACCEPTED,response_model= PasswordOut)
+@router.put("/reset_password",status_code=status.HTTP_202_ACCEPTED,response_model= PasswordOut)
 async def reset_password(
     db: db_dependency,
     password_data: EnterPassword,
