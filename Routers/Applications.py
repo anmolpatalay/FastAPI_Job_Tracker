@@ -1,18 +1,20 @@
-from fastapi import APIRouter,Depends,HTTPException
+from fastapi import APIRouter,Depends,HTTPException,Request
 from starlette import status
 from models import Applications,Companies
 from database import get_db
 from sqlalchemy.orm import Session
 from Routers.Auth import current_user
-from pydantic import BaseModel
+from pydantic import BaseModel,Field
 from datetime import date
 from typing import Annotated,Literal,List
 from sqlalchemy import func
+from slowapi.util import get_remote_address
+from slowapi import Limiter
 router = APIRouter(
     prefix="/Applications",
     tags=['Applications']
 )
-
+limiter = Limiter(key_func=get_remote_address)
 db_dependency = Annotated[Session,Depends(get_db)]
 user_dependency = Annotated[int,Depends(current_user)]
 
@@ -20,13 +22,15 @@ class ApplicationCreate(BaseModel):
     role_title : str
     status : Literal['applied','screening','interviewing','offer','rejected','withdrawn']
     job_url : str|None = None
+    notes: str | None = Field(default=None, max_length=1000)
 
     model_config = {
             'json_schema_extra': {
                 'example':{
                     'role_title' : 'SDE',
                     'status': 'applied',
-                    'job_url': ''
+                    'job_url': '',
+                    'notes' : ''
                 }
             }
         }
@@ -36,6 +40,7 @@ class ApplicationUpdate(BaseModel):
     status : Literal['applied','screening','interviewing','offer','rejected','withdrawn']
     job_url : str|None = None
     company_name : str|None = None
+    notes: str | None = Field(default=None, max_length=1000)
 
     model_config = {
             'json_schema_extra': {
@@ -43,7 +48,8 @@ class ApplicationUpdate(BaseModel):
                     'role_title' : 'Senior SDE',
                     'status': 'interviewing',
                     'job_url': 'https://example.com/job',
-                    'company_name': 'Acme Corp'
+                    'company_name': 'Acme Corp',
+                    'notes' : 'a small note.'
                 }
             }
         }
@@ -53,12 +59,14 @@ class ApplicationPatch(BaseModel):
     status : Literal['applied','screening','interviewing','offer','rejected','withdrawn']|None = None
     job_url : str|None = None
     company_name : str|None = None
+    notes: str | None = Field(default=None, max_length=1000)
 
     model_config = {
             'json_schema_extra': {
                 'example':{
                     'status': 'offer',
                     'job_url': 'https://example.com/updated',
+                    'notes':'small patch.'
                 }
             }
         }
@@ -72,6 +80,7 @@ class ApplicationOut(BaseModel):
     status: Literal['applied','screening','interviewing','offer','rejected','withdrawn']
     applied_date: date
     job_url: str|None = None
+    notes: str | None = Field(default=None, max_length=1000)
 
     model_config = {
         'from_attributes': True,
@@ -84,7 +93,8 @@ class ApplicationOut(BaseModel):
                 'role_title': 'SDE',
                 'status': 'applied',
                 'applied_date': '2026-07-31',
-                'job_url': 'https://example.com/job'
+                'job_url': 'https://example.com/job',
+                'notes':'small patch.'
             }
         }
     }
@@ -96,7 +106,8 @@ def to_application_out(application: Applications, db: Session) -> ApplicationOut
     return out
 
 @router.post("/applications/", status_code=status.HTTP_201_CREATED, response_model=ApplicationOut)
-async def add_new_application(db: db_dependency, application: ApplicationCreate, user: user_dependency, company_name: str):
+@limiter.limit("30/minute")
+async def add_new_application(request: Request,db: db_dependency, application: ApplicationCreate, user: user_dependency, company_name: str):
     company_detail = db.query(Companies).filter(
         func.lower(Companies.company_name) == company_name.lower(),
         Companies.user_id == user
@@ -110,7 +121,8 @@ async def add_new_application(db: db_dependency, application: ApplicationCreate,
         role_title=application.role_title,
         status=application.status,
         applied_date=date.today(),
-        job_url=application.job_url
+        job_url=application.job_url,
+        notes=application.notes
     )
     db.add(new_application)
     db.commit()
@@ -119,7 +131,8 @@ async def add_new_application(db: db_dependency, application: ApplicationCreate,
 
 
 @router.get("/applications/", status_code=status.HTTP_200_OK, response_model=List[ApplicationOut])
-async def get_all_applications(db: db_dependency, user: user_dependency, skip: int = 0, limit: int = 10):
+@limiter.limit("30/minute")
+async def get_all_applications(request: Request,db: db_dependency, user: user_dependency, skip: int = 0, limit: int = 10):
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not authenticated")
 
@@ -132,7 +145,8 @@ async def get_all_applications(db: db_dependency, user: user_dependency, skip: i
 
 
 @router.get("/applications/{application_id}", status_code=status.HTTP_200_OK, response_model=ApplicationOut)
-async def get_application_by_id(application_id: int, db: db_dependency, user: user_dependency):
+@limiter.limit("30/minute")
+async def get_application_by_id(request: Request,application_id: int, db: db_dependency, user: user_dependency):
     application = db.query(Applications).filter(
         Applications.application_id == application_id,
         Applications.user_id == user
@@ -143,7 +157,8 @@ async def get_application_by_id(application_id: int, db: db_dependency, user: us
 
 
 @router.put("/applications/{application_id}", status_code=status.HTTP_202_ACCEPTED, response_model=ApplicationOut)
-async def update_application_by_id(application_id: int, db: db_dependency, user: user_dependency, updated: ApplicationUpdate):
+@limiter.limit("30/minute")
+async def update_application_by_id(request: Request,application_id: int, db: db_dependency, user: user_dependency, updated: ApplicationUpdate):
     application = db.query(Applications).filter(
         Applications.application_id == application_id,
         Applications.user_id == user
@@ -163,6 +178,7 @@ async def update_application_by_id(application_id: int, db: db_dependency, user:
     application.role_title = updated.role_title
     application.status = updated.status
     application.job_url = updated.job_url
+    application.notes = updated.notes
 
     db.commit()
     db.refresh(application)
@@ -170,7 +186,8 @@ async def update_application_by_id(application_id: int, db: db_dependency, user:
 
 
 @router.patch("/applications/{application_id}", status_code=status.HTTP_200_OK, response_model=ApplicationOut)
-async def patch_an_application_small_change(application_id: int, db: db_dependency, user: user_dependency, changes: ApplicationPatch):
+@limiter.limit("30/minute")
+async def patch_an_application_small_change(request: Request,application_id: int, db: db_dependency, user: user_dependency, changes: ApplicationPatch):
     application = db.query(Applications).filter(Applications.application_id == application_id, Applications.user_id == user).first()
     if application is None:
         raise HTTPException(status_code=404, detail="application not found")
@@ -187,6 +204,8 @@ async def patch_an_application_small_change(application_id: int, db: db_dependen
         application.status = changes.status
     if changes.job_url is not None:
         application.job_url = changes.job_url
+    if "notes" in changes.model_fields_set:
+        application.notes = changes.notes
 
     db.commit()
     db.refresh(application)
@@ -194,7 +213,8 @@ async def patch_an_application_small_change(application_id: int, db: db_dependen
 
 
 @router.delete("/applications/{application_id}",status_code=status.HTTP_200_OK)
-async def delete_application_by_id(application_id: int, db: db_dependency, user: user_dependency):
+@limiter.limit("30/minute")
+async def delete_application_by_id(request: Request,application_id: int, db: db_dependency, user: user_dependency):
     application = db.query(Applications).filter(Applications.application_id == application_id,Applications.user_id == user).first()
     if application is None:
         raise HTTPException(status_code=404, detail="application not found")

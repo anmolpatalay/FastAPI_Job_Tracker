@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from typing import Annotated
 from models import Companies
+
 router = APIRouter(
     prefix="/Companies",
     tags=['Companies']

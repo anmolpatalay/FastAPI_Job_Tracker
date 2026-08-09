@@ -7,7 +7,7 @@ from datetime import datetime
 from database import get_db
 from Routers.Auth import current_user
 from models import Interviews, Applications
-
+from sqlalchemy.ext.asyncio import AsyncSession
 router = APIRouter(
     prefix="/Interviews",
     tags=['Interviews']

@@ -7,7 +7,9 @@ authors = [
     { name = "annmolpatalay", email = "anmolpatalay@gmail.com" }
 ]
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "slowapi>=0.1.10",
+]
 
 [project.scripts]
 job-application-tracker = "job_application_tracker:main"

@@ -711,7 +711,7 @@
     .btn, .toast { transition: none; }
   }
 </style>
-<base target="_blank">
+
 </head>
 <body>
 
@@ -744,7 +744,7 @@
 
   <div class="app-header">
     <div>
-      <h1>Departures<span>_</span></h1>
+      <h1>Tracker<span></span></h1>
       <p class="tagline">Application tracking board</p>
     </div>
     <div class="header-actions">
@@ -791,6 +791,7 @@
             <th>Status</th>
             <th>Applied</th>
             <th>Link</th>
+            <th>Notes</th>
             <th style="width: 80px;"></th>
           </tr>
         </thead>
@@ -866,6 +867,7 @@
               <th>Role</th>
               <th>Status</th>
               <th>Applied</th>
+              <th>Notes</th>
               <th>Link</th>
             </tr>
           </thead>
@@ -922,6 +924,20 @@
       <div class="field">
         <label for="appUrl">Job posting URL (optional)</label>
         <input id="appUrl" type="text" placeholder="https://...">
+      </div>
+      <div class="field">
+        <label for="appNotes">Notes (optional)</label>
+        <textarea
+  
+          id="appNotes"
+          rows="5"
+          maxlength="1000"
+          placeholder="Add notes about this application..."
+          
+        ></textarea>
+        <div style="font-size:11px; color:var(--text-faint); margin-top:4px;">
+          Maximum 1000 characters
+        </div>
       </div>
       <div class="modal-actions">
         <button type="button" class="btn" id="appCancelBtn">Cancel</button>
@@ -1120,12 +1136,28 @@ async function fetchApplications() {
   return apiFetch(CONFIG.ENDPOINTS.applications);
 }
 
-async function createApplication({ companyName, roleTitle, status, jobUrl }) {
-  const qs = new URLSearchParams({ company_name: companyName });
+async function createApplication({
+  companyName,
+  roleTitle,
+  status,
+  jobUrl,
+  notes
+}) {
+  const qs = new URLSearchParams({
+    company_name: companyName
+  });
+
   return apiFetch(`${CONFIG.ENDPOINTS.applications}?${qs.toString()}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ role_title: roleTitle, status, job_url: jobUrl || null })
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      role_title: roleTitle,
+      status,
+      job_url: jobUrl || null,
+      notes: notes || null
+    })
   });
 }
 
@@ -1294,7 +1326,9 @@ function renderStats() {
 
 function renderBoard() {
   const filter = document.getElementById('statusFilter').value;
-  const rows = filter ? state.applications.filter(a => a.status === filter) : state.applications;
+  const rows = filter
+    ? state.applications.filter(a => a.status === filter)
+    : state.applications;
 
   const body = document.getElementById('boardBody');
   const empty = document.getElementById('emptyState');
@@ -1304,26 +1338,95 @@ function renderBoard() {
     empty.style.display = 'block';
     return;
   }
+
   empty.style.display = 'none';
 
   body.innerHTML = rows.map(app => {
     const meta = STATUS_META[app.status] || STATUS_META.applied;
-    const dateStr = app.applied_date ? new Date(app.applied_date).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '—';
-    const companyLabel = app.company_name || (app.comapany_id ? `Company #${app.comapany_id}` : '—');
+
+    const dateStr = app.applied_date
+      ? new Date(app.applied_date).toLocaleDateString(
+          'en-IN',
+          {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+          }
+        )
+      : '—';
+
+    const companyLabel =
+      app.company_name ||
+      (app.comapany_id
+        ? `Company #${app.comapany_id}`
+        : '—');
+
     return `
       <tr data-id="${app.application_id}">
-        <td class="company" data-label="Company">${escapeHtml(companyLabel)}</td>
-        <td class="role" data-label="Role">${escapeHtml(app.role_title)}</td>
-        <td data-label="Status"><span class="badge ${meta.cls}">${app.status}</span></td>
-        <td data-label="Applied">${dateStr}</td>
-        <td data-label="Link">${app.job_url ? `<a class="job-link" href="${escapeAttr(app.job_url)}" target="_blank" rel="noopener">View</a>` : '<span style="color:var(--text-faint)">—</span>'}</td>
+
+        <td class="company" data-label="Company">
+          ${escapeHtml(companyLabel)}
+        </td>
+
+        <td class="role" data-label="Role">
+          ${escapeHtml(app.role_title)}
+        </td>
+
+        <td data-label="Status">
+          <span class="badge ${meta.cls}">
+            ${app.status}
+          </span>
+        </td>
+
+        <td data-label="Applied">
+          ${dateStr}
+        </td>
+
+        <td data-label="Link">
+          ${
+            app.job_url
+              ? `<a class="job-link"
+                    href="${escapeAttr(app.job_url)}"
+                    target="_blank"
+                    rel="noopener">
+                    View
+                 </a>`
+              : '<span style="color:var(--text-faint)">—</span>'
+          }
+        </td>
+
+        <td data-label="Notes" class="notes-cell">
+          ${
+            app.notes
+              ? `<span
+                    class="note-preview"
+                    title="${escapeAttr(app.notes)}">
+                    ${escapeHtml(app.notes)}
+                 </span>`
+              : '<span style="color:var(--text-faint)">—</span>'
+          }
+        </td>
+
         <td data-label="">
           <div class="row-actions">
-            <button class="icon-btn" title="Edit" onclick="openEditApp(${app.application_id})">✎</button>
-            <button class="icon-btn danger" title="Delete" onclick="handleDeleteApp(${app.application_id})">✕</button>
+            <button
+              class="icon-btn"
+              title="Edit"
+              onclick="openEditApp(${app.application_id})">
+              ✎
+            </button>
+
+            <button
+              class="icon-btn danger"
+              title="Delete"
+              onclick="handleDeleteApp(${app.application_id})">
+              ✕
+            </button>
           </div>
         </td>
-      </tr>`;
+
+      </tr>
+    `;
   }).join('');
 }
 
@@ -1567,6 +1670,7 @@ window.openEditApp = function(id) {
   document.getElementById('appRole').value = app.role_title || '';
   document.getElementById('appStatus').value = app.status || 'applied';
   document.getElementById('appUrl').value = app.job_url || '';
+  document.getElementById('appNotes').value = app.notes || '';
   appModalBackdrop.classList.add('open');
 };
 
@@ -1584,6 +1688,7 @@ document.getElementById('appForm').addEventListener('submit', async (e) => {
   const roleTitle = document.getElementById('appRole').value.trim();
   const status = document.getElementById('appStatus').value;
   const jobUrl = document.getElementById('appUrl').value.trim();
+  const notes = document.getElementById('appNotes').value.trim();
   const btn = document.getElementById('appSaveBtn');
   btn.disabled = true;
 
@@ -1593,11 +1698,12 @@ document.getElementById('appForm').addEventListener('submit', async (e) => {
         role_title: roleTitle,
         status,
         job_url: jobUrl || null,
-        company_name: companyName || null
+        company_name: companyName || null,
+        notes: notes || null
       });
       showToast('Application updated.');
     } else {
-      await createApplication({ companyName, roleTitle, status, jobUrl });
+      await createApplication({ companyName, roleTitle, status, jobUrl,notes });
       showToast('Application added.');
     }
     closeAppModal();

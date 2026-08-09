@@ -18,7 +18,7 @@ SQLALCHEMY_DATABASE_URL = URL.create(
     database=os.getenv('DB_NAME', 'job_tracker'),
 )
 
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
+engine = create_engine(SQLALCHEMY_DATABASE_URL,pool_pre_ping=True)
 
 sessionLocal = sessionmaker(autocommit = False, autoflush=False,bind=engine)
 

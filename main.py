@@ -6,6 +6,15 @@ from models import BASE
 from database import engine
 from Routers import Applications,Auth,Companies,Interviews
 from config import setting_obj
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+import os 
+import dotenv
+
+limiter = Limiter(key_func=get_remote_address)
+
 
 app = FastAPI(
     docs_url='/docs' if setting_obj.DEBUG else None,
@@ -21,6 +30,9 @@ app = FastAPI(
 
 BASE.metadata.create_all(bind=engine)
 
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded,_rate_limit_exceeded_handler)
+
 app.include_router(Auth.router)
 app.include_router(Applications.router)
 app.include_router(Companies.router)
@@ -31,12 +43,23 @@ app.include_router(Interviews.router)
 async def get_health():
     return {"status":"healthy"}
 
+ALLOWED_ORIGINS = os.getenv(
+    "ALLOWED_ORIGINS",
+    "http://127.0.0.1:8000/"
+)
+
+if setting_obj.DEBUG:
+    ALLOWED_ORIGINS += "http://127.0.0.1:8000/"
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE","PATCH"],
+    allow_headers=["Authorization", "Content-Type"],
+    max_age=600,
 )
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/",include_in_schema=False)

@@ -9,7 +9,7 @@ status_history   id, application_id (FK), old_status, new_status, changed_at
 '''
 from datetime import datetime
 from database import BASE
-from sqlalchemy import Column,Integer,Boolean,String,ForeignKey,TIMESTAMP,Enum,DateTime,Date
+from sqlalchemy import Column,Integer,Boolean,String,ForeignKey,TIMESTAMP,Enum,DateTime,Date,Text
 status_enums = ('applied','screening','interviewing','offer','rejected','withdrawn')
 
 class Users(BASE):
@@ -35,6 +35,7 @@ class Applications(BASE):
     status = Column(Enum(*status_enums), nullable=False)
     applied_date= Column(Date)
     job_url = Column(String(250))
+    notes = Column(Text, nullable=True)
 
 
 class Interviews(BASE):

@@ -1,4 +1,4 @@
-from fastapi import APIRouter,Depends,Path,HTTPException,status
+from fastapi import APIRouter,Depends,Path,HTTPException,status,Response,Request
 from database import get_db
 from typing import Annotated
 from sqlalchemy.orm import Session
@@ -80,7 +80,7 @@ def create_token(email:str,user_id:int):
 
 
 def create_refresh_token(email,user_id):
-    expire = datetime.now(timezone.utc)+timedelta(days=2)
+    expire = datetime.now(timezone.utc)+timedelta(hours=1)
     payload = {
         "sub":email,
         "id":user_id,
@@ -122,7 +122,11 @@ async def register_new_user(db : db_dependency,user: EnterUserData):
     db.refresh(register_new_user_model)
 
 @router.post("/login")
-async def login(db: db_dependency,form_data : OAuth2PasswordRequestForm = Depends()): 
+async def login(
+    db: db_dependency,
+    response: Response,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+): 
     email_id = form_data.username
     password1 = form_data.password
     user_detail = db.query(Users).filter(Users.email == email_id).first()
@@ -131,9 +135,16 @@ async def login(db: db_dependency,form_data : OAuth2PasswordRequestForm = Depend
     if bcrypt_context.verify(password1,user_detail.hashed_password):
         access_token = create_token(email=user_detail.email, user_id=user_detail.id)
         refresh_token = create_refresh_token(email=user_detail.email, user_id=user_detail.id)
+        response.set_cookie(
+            key="refresh_token",
+            value=refresh_token,
+            httponly=True,
+            secure=False,
+            samesite="lax",
+            path="/",
+        )
         return {
             "access_token": access_token,
-            "refresh_token": refresh_token,
             "token_type": "bearer"
         }
     else:
@@ -184,7 +195,11 @@ async def reset_password(
     return PasswordOut(new_password=password_data.new_password)
 
 @router.post("/refresh")
-async def refresh(refresh_token: str):
+async def refresh(request: Request, response: Response):
+    refresh_token = request.cookies.get("refresh_token")
+    if not refresh_token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing refresh token")
+
     try:
         payload = jwt.decode(
             refresh_token,
@@ -199,9 +214,16 @@ async def refresh(refresh_token: str):
 
     access_token = create_token(payload["sub"], payload["id"])
     new_refresh_token = create_refresh_token(payload["sub"], payload["id"])
+    response.set_cookie(
+        key="refresh_token",
+        value=new_refresh_token,
+        httponly=True,
+        secure=False,
+        samesite="lax",
+        path="/",
+    )
 
     return {
         "access_token": access_token,
-        "refresh_token": new_refresh_token,
         "token_type": "bearer"
     }
