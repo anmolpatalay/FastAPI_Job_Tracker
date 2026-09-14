@@ -9,3 +9,5 @@ class Settings(BaseSettings):
     )
 
 setting_obj = Settings()
+
+API_V1_PREFIX = "/api/v1"

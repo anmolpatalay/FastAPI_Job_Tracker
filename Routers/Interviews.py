@@ -9,7 +9,7 @@ from Routers.Auth import current_user
 from models import Interviews, Applications
 from sqlalchemy.ext.asyncio import AsyncSession
 router = APIRouter(
-    prefix="/Interviews",
+    prefix="/interviews",
     tags=['Interviews']
 )
 
@@ -49,7 +49,7 @@ class InterviewOut(BaseModel):
         }
     }
 
-@router.post("/interviews", status_code=status.HTTP_201_CREATED, response_model=InterviewOut)
+@router.post("", status_code=status.HTTP_201_CREATED, response_model=InterviewOut)
 async def add_interview_details(interview: InterviewCreate, db: db_dependency, user: user_dependency):
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not authenticated")
@@ -71,7 +71,7 @@ async def add_interview_details(interview: InterviewCreate, db: db_dependency, u
     db.refresh(new_interview)
     return InterviewOut.model_validate(new_interview)
 
-@router.get("/interviews", response_model=list[InterviewOut])
+@router.get("", response_model=list[InterviewOut])
 async def get_all_interviews(db: db_dependency, user: user_dependency):
     interviews = (
         db.query(Interviews)
@@ -82,7 +82,7 @@ async def get_all_interviews(db: db_dependency, user: user_dependency):
     return [InterviewOut.model_validate(interview) for interview in interviews]
 
 
-@router.get("/interviews/{interview_id}", response_model=InterviewOut)
+@router.get("/{interview_id}", response_model=InterviewOut)
 async def get_interview_by_id(interview_id: int, db: db_dependency, user: user_dependency):
     interview = (
         db.query(Interviews)

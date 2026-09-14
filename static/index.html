@@ -1036,20 +1036,21 @@
 /* =====================================================================
    CONFIG
 ===================================================================== */
+const API_V1 = '/api/v1';
 const CONFIG = {
   API_BASE: 'http://127.0.0.1:8000',
   ENDPOINTS: {
-    register:   '/Auth/register',
-    login:      '/Auth/login',
-    me:         '/Auth/me/',
-    allUsers:   '/Auth/all',
-    applications:        '/Applications/applications/',
-    applicationById: (id) => `/Applications/applications/${id}`,
-    applicationPatch: (id) => `/Applications/applications/${id}`,
-    companies:      '/Companies/company',
-    companiesList:  '/Companies/company/get_all',
-    interviews:     '/Interviews/interviews',
-    changePassword: '/Auth/auth/reset_password'
+    register:   `${API_V1}/auth/register`,
+    login:      `${API_V1}/auth/login`,
+    me:         `${API_V1}/auth/me`,
+    allUsers:   `${API_V1}/auth/users`,
+    applications:        `${API_V1}/applications`,
+    applicationById: (id) => `${API_V1}/applications/${id}`,
+    applicationPatch: (id) => `${API_V1}/applications/${id}`,
+    companies:      `${API_V1}/companies`,
+    companiesList:  `${API_V1}/companies`,
+    interviews:     `${API_V1}/interviews`,
+    changePassword: `${API_V1}/auth/password`
   }
 };
 

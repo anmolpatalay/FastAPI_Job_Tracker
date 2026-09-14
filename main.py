@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from models import BASE
 from database import engine
 from Routers import Applications,Auth,Companies,Interviews
-from config import setting_obj
+from config import setting_obj, API_V1_PREFIX
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -21,6 +21,7 @@ app = FastAPI(
     redoc_url='/redoc' if setting_obj.DEBUG else None,
     openapi_url='/openapi_json' if setting_obj.DEBUG else None,
     version='0.0.1',
+    redirect_slashes=False,
     openapi_tags=None,
     contact={"name":"Anmol Patalay","email":"anmolpatalay@gmail.com","url":"https://www.linkedin.com/in/anmol-patalay-80b9a6328/"},
     title="Job Application Tracker",
@@ -33,10 +34,10 @@ BASE.metadata.create_all(bind=engine)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded,_rate_limit_exceeded_handler)
 
-app.include_router(Auth.router)
-app.include_router(Applications.router)
-app.include_router(Companies.router)
-app.include_router(Interviews.router)
+app.include_router(Auth.router, prefix=API_V1_PREFIX)
+app.include_router(Applications.router, prefix=API_V1_PREFIX)
+app.include_router(Companies.router, prefix=API_V1_PREFIX)
+app.include_router(Interviews.router, prefix=API_V1_PREFIX)
 
 
 @app.get("/health")

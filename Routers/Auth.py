@@ -9,10 +9,11 @@ from utils import hash_password,bcrypt_context
 from jose import jwt, JWTError
 from fastapi.security import OAuth2PasswordBearer,OAuth2PasswordRequestForm
 from dotenv import load_dotenv
+from config import API_V1_PREFIX
 import os
 import re
 router = APIRouter(
-    prefix="/Auth",
+    prefix="/auth",
     tags=['Auth']
 )
 
@@ -90,7 +91,7 @@ def create_refresh_token(email,user_id):
     return jwt.encode(payload,SECRET_KEY,algorithm=ALGORITHM)
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/Auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{API_V1_PREFIX}/auth/login")
 auth_dependency = Depends(oauth2_scheme)
 #################################### END POINTS ####################################
 db_dependency = Annotated[Session,Depends(get_db)]
@@ -163,7 +164,7 @@ async def get_current_user(user: str = auth_dependency):
     return user_id
 
 
-@router.get("/all", response_model=list[UserOut])
+@router.get("/users", response_model=list[UserOut])
 async def get_all(db: db_dependency, user: str = auth_dependency):
     try:
         payload = jwt.decode(user, SECRET_KEY, algorithms=[ALGORITHM])
@@ -175,7 +176,7 @@ async def get_all(db: db_dependency, user: str = auth_dependency):
         return db.query(Users).all()
     return [db.query(Users).filter(Users.email == email).first()]
 
-@router.put("/reset_password",status_code=status.HTTP_202_ACCEPTED,response_model= PasswordOut)
+@router.put("/password",status_code=status.HTTP_202_ACCEPTED,response_model= PasswordOut)
 async def reset_password(
     db: db_dependency,
     password_data: EnterPassword,

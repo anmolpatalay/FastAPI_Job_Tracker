@@ -11,7 +11,7 @@ from sqlalchemy import func
 from slowapi.util import get_remote_address
 from slowapi import Limiter
 router = APIRouter(
-    prefix="/Applications",
+    prefix="/applications",
     tags=['Applications']
 )
 limiter = Limiter(key_func=get_remote_address)
@@ -105,7 +105,7 @@ def to_application_out(application: Applications, db: Session) -> ApplicationOut
     out.company_name = company.company_name if company else None
     return out
 
-@router.post("/applications/", status_code=status.HTTP_201_CREATED, response_model=ApplicationOut)
+@router.post("", status_code=status.HTTP_201_CREATED, response_model=ApplicationOut)
 @limiter.limit("30/minute")
 async def add_new_application(request: Request,db: db_dependency, application: ApplicationCreate, user: user_dependency, company_name: str):
     company_detail = db.query(Companies).filter(
@@ -130,7 +130,7 @@ async def add_new_application(request: Request,db: db_dependency, application: A
     return to_application_out(new_application, db)
 
 
-@router.get("/applications/", status_code=status.HTTP_200_OK, response_model=List[ApplicationOut])
+@router.get("", status_code=status.HTTP_200_OK, response_model=List[ApplicationOut])
 @limiter.limit("30/minute")
 async def get_all_applications(request: Request,db: db_dependency, user: user_dependency, skip: int = 0, limit: int = 10):
     if user is None:
@@ -144,7 +144,7 @@ async def get_all_applications(request: Request,db: db_dependency, user: user_de
     return [to_application_out(application, db) for application in applications]
 
 
-@router.get("/applications/{application_id}", status_code=status.HTTP_200_OK, response_model=ApplicationOut)
+@router.get("/{application_id}", status_code=status.HTTP_200_OK, response_model=ApplicationOut)
 @limiter.limit("30/minute")
 async def get_application_by_id(request: Request,application_id: int, db: db_dependency, user: user_dependency):
     application = db.query(Applications).filter(
@@ -156,7 +156,7 @@ async def get_application_by_id(request: Request,application_id: int, db: db_dep
     return to_application_out(application, db)
 
 
-@router.put("/applications/{application_id}", status_code=status.HTTP_202_ACCEPTED, response_model=ApplicationOut)
+@router.put("/{application_id}", status_code=status.HTTP_202_ACCEPTED, response_model=ApplicationOut)
 @limiter.limit("30/minute")
 async def update_application_by_id(request: Request,application_id: int, db: db_dependency, user: user_dependency, updated: ApplicationUpdate):
     application = db.query(Applications).filter(
@@ -185,7 +185,7 @@ async def update_application_by_id(request: Request,application_id: int, db: db_
     return to_application_out(application, db)
 
 
-@router.patch("/applications/{application_id}", status_code=status.HTTP_200_OK, response_model=ApplicationOut)
+@router.patch("/{application_id}", status_code=status.HTTP_200_OK, response_model=ApplicationOut)
 @limiter.limit("30/minute")
 async def patch_an_application_small_change(request: Request,application_id: int, db: db_dependency, user: user_dependency, changes: ApplicationPatch):
     application = db.query(Applications).filter(Applications.application_id == application_id, Applications.user_id == user).first()
@@ -212,7 +212,7 @@ async def patch_an_application_small_change(request: Request,application_id: int
     return to_application_out(application, db)
 
 
-@router.delete("/applications/{application_id}",status_code=status.HTTP_200_OK)
+@router.delete("/{application_id}",status_code=status.HTTP_200_OK)
 @limiter.limit("30/minute")
 async def delete_application_by_id(request: Request,application_id: int, db: db_dependency, user: user_dependency):
     application = db.query(Applications).filter(Applications.application_id == application_id,Applications.user_id == user).first()

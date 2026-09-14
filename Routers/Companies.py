@@ -8,7 +8,7 @@ from typing import Annotated
 from models import Companies
 
 router = APIRouter(
-    prefix="/Companies",
+    prefix="/companies",
     tags=['Companies']
 )
 db_dependency = Annotated[Session,Depends(get_db)]
@@ -58,7 +58,7 @@ class CompanyUpdate(BaseModel):
         }
     }
 
-@router.post("/company",status_code=status.HTTP_201_CREATED,response_model=CompanyOut)
+@router.post("",status_code=status.HTTP_201_CREATED,response_model=CompanyOut)
 async def add_new_company(db: db_dependency, user :current_user_dependency, company: CompanyCreate):
     if user is None:
         raise HTTPException(status_code=404,detail="User not found/auntenticated")
@@ -73,7 +73,7 @@ async def add_new_company(db: db_dependency, user :current_user_dependency, comp
     db.refresh(company_model)
     return CompanyOut.model_validate(company_model)
 
-@router.get("/company/get_all",status_code=status.HTTP_200_OK, response_model=list[CompanyOut])
+@router.get("",status_code=status.HTTP_200_OK, response_model=list[CompanyOut])
 async def get_company_details(
     db: db_dependency,
     user :current_user_dependency,
@@ -84,18 +84,18 @@ async def get_company_details(
     companies = companies.offset(skip).limit(limit).all()
     return [CompanyOut.model_validate(company) for company in companies]
 
-@router.get("/company/{id}/",status_code=status.HTTP_200_OK, response_model=CompanyOut)  #Parameters with default values must come after parameters without default values.
-async def get_company_by_id(db: db_dependency, user :current_user_dependency,id :int =Path(ge=0,le=100)) : 
+@router.get("/{company_id}",status_code=status.HTTP_200_OK, response_model=CompanyOut)
+async def get_company_by_id(db: db_dependency, user :current_user_dependency, company_id: int = Path(ge=1)):
     if user is None:
         raise HTTPException(status_code=404,detail="user not found")
-    company = db.query(Companies).filter(Companies.company_id == id, Companies.user_id ==user).first()
+    company = db.query(Companies).filter(Companies.company_id == company_id, Companies.user_id ==user).first()
     if company is None:
         raise HTTPException(status_code=404,detail='company Not found')
     return CompanyOut.model_validate(company)
 
-@router.put("/company_detail_update/{id}",status_code=status.HTTP_202_ACCEPTED,response_model=CompanyOut)
-async def update_company_detail(id: int,db: db_dependency, user :current_user_dependency, company: CompanyUpdate): 
-    company_to_update = db.query(Companies).filter(Companies.company_id == id,Companies.user_id==user).first()
+@router.put("/{company_id}",status_code=status.HTTP_202_ACCEPTED,response_model=CompanyOut)
+async def update_company_detail(company_id: int, db: db_dependency, user :current_user_dependency, company: CompanyUpdate):
+    company_to_update = db.query(Companies).filter(Companies.company_id == company_id,Companies.user_id==user).first()
     if company_to_update is None:
         raise HTTPException(status_code=404,detail='company Not found')
     company_to_update.company_name = company.company_name
@@ -104,13 +104,14 @@ async def update_company_detail(id: int,db: db_dependency, user :current_user_de
     db.refresh(company_to_update)
     return CompanyOut.model_validate(company_to_update)
 
-@router.delete("/company_deleted/",status_code=status.HTTP_200_OK)
-async def delete_a_company(db: db_dependency,usr: current_user_dependency,id:int) :
+@router.delete("/{company_id}",status_code=status.HTTP_200_OK)
+async def delete_a_company(db: db_dependency, usr: current_user_dependency, company_id: int = Path(ge=1)):
     if usr is None:
-        raise HTTPException(status_code=404,detail="user are not authenticated")  
-    company_to_delete = db.query(Companies).filter(Companies.company_id == id,Companies.user_id == usr).first()
+        raise HTTPException(status_code=404,detail="user are not authenticated")
+    company_to_delete = db.query(Companies).filter(Companies.company_id == company_id,Companies.user_id == usr).first()
     if company_to_delete is None:
         raise HTTPException(status_code=404,detail="company not found")
     db.delete(company_to_delete)
     db.commit()
+    return {"detail": "company deleted"}
     
