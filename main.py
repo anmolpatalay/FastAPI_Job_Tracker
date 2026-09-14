@@ -44,10 +44,17 @@ app.include_router(Interviews.router, prefix=API_V1_PREFIX)
 async def get_health():
     return {"status":"healthy"}
 
-ALLOWED_ORIGINS = os.getenv(
-    "ALLOWED_ORIGINS",
-    "http://127.0.0.1:8000/"
-)
+# ALLOWED_ORIGINS = os.getenv(
+#     "ALLOWED_ORIGINS",
+#     "http://127.0.0.1:8000/"
+# )
+
+
+ALLOWED_ORIGINS = [
+    o.strip()
+    for o in os.getenv("ALLOWED_ORIGINS", "http://127.0.0.1:8000").split(",")
+    if o.strip()
+]
 
 if setting_obj.DEBUG:
     ALLOWED_ORIGINS += "http://127.0.0.1:8000/"
