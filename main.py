@@ -56,8 +56,8 @@ ALLOWED_ORIGINS = [
     if o.strip()
 ]
 
-if setting_obj.DEBUG:
-    ALLOWED_ORIGINS += "http://127.0.0.1:8000/"
+if setting_obj.DEBUG and "http://127.0.0.1:8000" not in ALLOWED_ORIGINS:
+    ALLOWED_ORIGINS.append("http://127.0.0.1:8000")
 
 app.add_middleware(
     CORSMiddleware,
