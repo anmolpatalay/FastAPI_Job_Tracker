@@ -1083,8 +1083,9 @@ async function apiFetch(path, options = {}) {
   if (state.token) headers['Authorization'] = `Bearer ${state.token}`;
   const res = await fetch(CONFIG.API_BASE + path, { ...options, headers });
   if (res.status === 401) {
+    const hadToken = Boolean(state.token);
     signOut();
-    throw new Error('Session expired. Please sign in again.');
+    throw new Error(hadToken ? 'Session expired. Please sign in again.' : 'Please sign in.');
   }
   if (!res.ok) {
     let detail = `Request failed (${res.status})`;
@@ -1114,6 +1115,9 @@ async function login(email, password) {
     throw new Error(detail);
   }
   const data = await res.json();
+  if (!data.access_token) {
+    throw new Error(data.user || data.detail || 'Login failed. Check email and password.');
+  }
   return data.access_token;
 }
 
@@ -1914,7 +1918,7 @@ async function boot() {
     }
     document.getElementById('userChip').textContent = email || 'Signed in';
   } catch (err) {
-    document.getElementById('userChip').textContent = email || 'Signed in';
+    return;
   }
 
   // Admin check: case-insensitive, works with stored email
